@@ -1,0 +1,882 @@
+/**
+ * WB Mesh — Application State Management
+ * Single source of truth for the entire application
+ */
+
+import {
+  OrderStatus,
+  RouteType,
+  UserRole,
+  City,
+  PVZType,
+  DEMO_CITIES,
+  DEMO_PVZS,
+  DEMO_PRODUCTS,
+  DEMO_SELLERS,
+  DEFAULT_TARIFFS,
+  generateId,
+  deepClone
+} from './types.js';
+
+import { MCS } from './mcs-engine.js';
+
+// ============================================
+// STATE MANAGEMENT
+// ============================================
+
+class StateManager {
+  constructor() {
+    /** @type {Object} */
+    this.state = this.createInitialState();
+    /** @type {Set<Function>} */
+    this.listeners = new Set();
+    /** @type {MCS} */
+    this.mcs = new MCS({
+      pvzs: this.state.pvzs,
+      cities: this.state.cities,
+      tariffs: this.state.tariffs,
+      orders: this.state.orders
+    });
+    /** @type {number|null} */
+    this.virtualTimeTimer = null;
+    this.startVirtualClock();
+  }
+
+  /**
+   * Create initial application state
+   * @returns {Object}
+   */
+  createInitialState() {
+    /** @type {Map<string, Object>} */
+    const cities = new Map();
+    /** @type {Map<string, Object>} */
+    const pvzs = new Map();
+    /** @type {Map<string, Object>} */
+    const products = new Map();
+    /** @type {Map<string, Object>} */
+    const sellers = new Map();
+    /** @type {Map<string, Object>} */
+    const orders = new Map();
+    /** @type {Map<string, Object>} */
+    const salesHistory = new Map();
+
+    // Initialize cities
+    for (const city of DEMO_CITIES) {
+      cities.set(city.id, deepClone(city));
+    }
+
+    // Initialize PVZs
+    for (const pvz of DEMO_PVZS) {
+      const pvzClone = deepClone(pvz);
+      pvzClone.inventory = pvzClone.inventory || [];
+      pvzs.set(pvzClone.id, pvzClone);
+    }
+
+    // Initialize products
+    for (const product of DEMO_PRODUCTS) {
+      products.set(product.id, deepClone(product));
+    }
+
+    // Initialize sellers
+    for (const seller of DEMO_SELLERS) {
+      sellers.set(seller.id, deepClone(seller));
+    }
+
+    // Seed initial inventory
+    this.seedInitialInventory(pvzs, products);
+
+    // Generate synthetic sales history for forecasting
+    this.generateSalesHistory(salesHistory, products);
+
+    return {
+      // UI state
+      ui: {
+        selectedCityId: null,
+        selectedPvzId: null,
+        selectedSellerId: null,
+        activeTab: 'dashboard',
+        role: UserRole.OWNER
+      },
+
+      // Virtual time
+      virtualTime: {
+        currentTime: 0, // hours since epoch
+        currentDay: 0,
+        speed: 0, // 0 = paused, 1 = real-time, 10 = 10x, etc.
+        isRunning: false
+      },
+
+      // Data
+      cities,
+      pvzs,
+      products,
+      sellers,
+      orders,
+      salesHistory,
+      tariffs: deepClone(DEFAULT_TARIFFS),
+
+      // MCS
+      mcsStatus: 'ready',
+      mcsDecisionLog: [],
+
+      // Demo scenarios
+      demoScenarios: this.createDemoScenarios(),
+
+      // Financial snapshots
+      financialSnapshots: [],
+
+      // Notifications
+      notifications: []
+    };
+  }
+
+  /**
+   * Seed initial inventory in PVZs
+   */
+  seedInitialInventory(pvzs, products) {
+    const productArray = Array.from(products.values());
+    for (const pvz of pvzs.values()) {
+      if (pvz.type !== PVZType.MESH && pvz.type !== PVZType.HUB) continue;
+
+      // Add 3-5 random products to each mesh PVZ
+      const numProducts = Math.floor(Math.random() * 3) + 3;
+      const shuffled = [...productArray].sort(() => 0.5 - Math.random());
+
+      for (let i = 0; i < Math.min(numProducts, shuffled.length); i++) {
+        const product = shuffled[i];
+        const quantity = Math.floor(Math.random() * 20) + 5;
+        const batchId = `batch-${product.id}-${generateId().slice(-6)}`;
+
+        pvz.inventory.push({
+          id: `inv-${generateId()}`,
+          productId: product.id,
+          quantity,
+          batchId,
+          receivedAt: this.state?.virtualTime?.currentTime || 0,
+          status: 'available',
+          daysStored: Math.floor(Math.random() * 10)
+        });
+        pvz.occupiedCapacity += quantity;
+      }
+    }
+  }
+
+  /**
+   * Generate synthetic sales history for forecasting
+   */
+  generateSalesHistory(salesHistory, products) {
+    for (const product of products.values()) {
+      const history = [];
+      const baseDemand = Math.floor(Math.random() * 10) + 2; // 2-12 per day
+      const trend = (Math.random() - 0.5) * 0.1; // slight trend
+      const seasonality = 7; // weekly
+
+      for (let day = 0; day < 84; day++) { // 12 weeks
+        const weeklyPattern = 1 + 0.3 * Math.sin((day % seasonality) / seasonality * 2 * Math.PI);
+        const trendFactor = 1 + trend * day;
+        const noise = 1 + (Math.random() - 0.5) * 0.4;
+        const demand = Math.max(0, Math.round(baseDemand * weeklyPattern * trendFactor * noise));
+        history.push(demand);
+      }
+      salesHistory.set(product.id, history);
+    }
+  }
+
+  /**
+   * Create demo scenarios
+   * @returns {Array<Object>}
+   */
+  createDemoScenarios() {
+    return [
+      {
+        id: 'city_order',
+        name: '🏙 Городской заказ (M1/M2)',
+        description: 'Заказ внутри Перми: ПВЗ «Плюс Ареал» → тот же ПВЗ. M1 маршрут, 0₽ транспорт.',
+        steps: [
+          'Создать заказ (3 шт. Samsung Galaxy)',
+          'MCS маршрутизация: M1 (в том же ПВЗ)',
+          'Приёмка на ПВЗ',
+          'Размещение на хранении',
+          'Сборка заказа',
+          'Отправка (виртуальная)',
+          'Выдача покупателю',
+          'Начисление 39₽ ПВЗ, маржа 16₽'
+        ],
+        autoAdvance: true,
+        stepDelayMs: 3000
+      },
+      {
+        id: 'intercity_order',
+        name: '🚛 Межгородний заказ (C2)',
+        description: 'Пермь → Екатеринбург: 5 заказов в рейсе. Точка безубыточности = 5 заказов.',
+        steps: [
+          'Создать заказ (5 шт. Nike Air Max)',
+          'MCS маршрутизация: C2 через хабы',
+          'Рейс Пермь-Хаб → Екб-Хаб (магистраль)',
+          'Локальная доставка в Екб',
+          'Приёмка на ПВЗ «Уральский»',
+          'Сборка и выдача',
+          'Начисление: Classic 100₽ vs Mesh 93₽',
+          'Экономия 7₽ на заказе при 5+ заказах'
+        ],
+        autoAdvance: true,
+        stepDelayMs: 3000
+      },
+      {
+        id: 'return_flow',
+        name: '🔄 Возврат через Mesh',
+        description: 'Покупатель не забрал: возврат 20₽ через Mesh vs 50₽ через хаб. Карантин 24ч.',
+        steps: [
+          'Заказ выдан, покупатель не явился',
+          'Инициировать возврат',
+          'MCS: возврат через Mesh (20₽)',
+          'Товар в карантине на ПВЗ',
+          'Решение за 24ч: перепродать',
+          'Товар снова доступен для продажи',
+          'Экономия на возврате: 30₽'
+        ],
+        autoAdvance: true,
+        stepDelayMs: 3000
+      },
+      {
+        id: 'route_failure',
+        name: '⚠️ Сбой маршрута',
+        description: 'Автомобиль сломался: MCS пересчитывает за 2 сек, меняет C2 → C1, SLA 24ч не нарушен.',
+        steps: [
+          'Заказ Пермь → Казань (10 шт.)',
+          'MCS: маршрут C2 через магистраль',
+          'Событие: поломка автомобиля',
+          'MCS: мгновенный пересчёт',
+          'Новый маршрут: C1 через резерв',
+          'SLA 24ч соблюдён',
+          'Покупатель не замечает сбоя'
+        ],
+        autoAdvance: true,
+        stepDelayMs: 3000
+      },
+      {
+        id: 'long_storage',
+        name: '📦 Долгое хранение',
+        description: 'Товар лежит 30 дней: прогрессивный тариф 1× → 1.5× → 2× после 7 бесплатных дней.',
+        steps: [
+          'Заказ принят на ПВЗ',
+          'Товар на хранении 30 дней',
+          'Дни 1-7: базовая ставка 15₽/день',
+          'Дни 8-14: 1.5× = 22.5₽/день',
+          'Дни 15-30: 2× = 30₽/день',
+          'Итого хранение: 630₽ vs 450₽',
+          'MCS учитывает это в маршрутизации'
+        ],
+        autoAdvance: true,
+        stepDelayMs: 3000
+      }
+    ];
+  }
+
+  // ============================================
+  // SUBSCRIPTION & NOTIFICATION
+  // ============================================
+
+  /**
+   * Subscribe to state changes
+   * @param {Function} listener
+   * @returns {Function} unsubscribe
+   */
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  /**
+   * Notify all listeners
+   */
+  notify() {
+    for (const listener of this.listeners) {
+      try {
+        listener(this.state, this.previousState);
+      } catch (e) {
+        console.error('Listener error:', e);
+      }
+    }
+  }
+
+  /**
+   * Set state property and notify
+   * @param {string} path
+   * @param {any} value
+   */
+  setState(path, value) {
+    this.previousState = deepClone(this.state);
+    const keys = path.split('.');
+    let obj = this.state;
+    for (let i = 0; i < keys.length - 1; i++) {
+      obj = obj[keys[i]];
+    }
+    obj[keys[keys.length - 1]] = value;
+    this.notify();
+  }
+
+  /**
+   * Get current state
+   * @returns {Object}
+   */
+  getState() {
+    return this.state;
+  }
+
+  // ============================================
+  // VIRTUAL TIME
+  // ============================================
+
+  startVirtualClock() {
+    if (this.virtualTimeTimer) return;
+    this.state.virtualTime.isRunning = true;
+    this.virtualTimeTimer = setInterval(() => {
+      if (this.state.virtualTime.speed > 0) {
+        const step = this.state.virtualTime.speed / 3600; // hours per second at 1x
+        this.state.virtualTime.currentTime += step;
+        this.state.virtualTime.currentDay = Math.floor(this.state.virtualTime.currentTime / 24);
+        this.ageInventory(step);
+        this.notify();
+      }
+    }, 1000);
+  }
+
+  pauseVirtualClock() {
+    if (this.virtualTimeTimer) {
+      clearInterval(this.virtualTimeTimer);
+      this.virtualTimeTimer = null;
+    }
+    this.state.virtualTime.isRunning = false;
+    this.notify();
+  }
+
+  setClockSpeed(speed) {
+    this.state.virtualTime.speed = speed;
+    this.notify();
+  }
+
+  stepTime(hours = 1) {
+    this.state.virtualTime.currentTime += hours;
+    this.state.virtualTime.currentDay = Math.floor(this.state.virtualTime.currentTime / 24);
+    this.ageInventory(hours);
+    this.notify();
+  }
+
+  ageInventory(hours) {
+    for (const pvz of this.state.pvzs.values()) {
+      if (!pvz.inventory) continue;
+      for (const item of pvz.inventory) {
+        item.daysStored = (item.daysStored || 0) + hours / 24;
+        if (item.daysStored > 60 && item.status === 'available') {
+          item.status = 'quarantine';
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // ROLE & SELECTION
+  // ============================================
+
+  setRole(role) {
+    this.state.ui.role = role;
+    this.notify();
+  }
+
+  setSelectedCity(cityId) {
+    this.state.ui.selectedCityId = cityId;
+    this.notify();
+  }
+
+  setSelectedPvz(pvzId) {
+    this.state.ui.selectedPvzId = pvzId;
+    this.notify();
+  }
+
+  setSelectedSeller(sellerId) {
+    this.state.ui.selectedSellerId = sellerId;
+    this.notify();
+  }
+
+  setActiveTab(tab) {
+    this.state.ui.activeTab = tab;
+    this.notify();
+  }
+
+  setTariffs(tariffs) {
+    this.state.tariffs = tariffs;
+    this.mcs = new MCS({
+      pvzs: this.state.pvzs,
+      cities: this.state.cities,
+      tariffs,
+      orders: this.state.orders
+    });
+    this.notify();
+  }
+
+  // ============================================
+  // ORDER LIFECYCLE
+  // ============================================
+
+  /**
+   * Create new order
+   * @param {Object} params
+   * @returns {Object}
+   */
+  createOrder({ productId, quantity, destinationPvzId, sourcePvzId, sellerId }) {
+    const order = {
+      id: generateId('order'),
+      productId,
+      quantity,
+      sourcePvzId: sourcePvzId || destinationPvzId,
+      destinationPvzId,
+      sellerId: sellerId || this.state.products.get(productId)?.sellerId,
+      status: OrderStatus.NEW,
+      createdAt: this.state.virtualTime.currentTime,
+      events: [{
+        type: 'created',
+        timestamp: this.state.virtualTime.currentTime,
+        details: { productId, quantity, destinationPvzId }
+      }]
+    };
+    this.state.orders.set(order.id, order);
+    this.notify();
+    return order;
+  }
+
+  /**
+   * Route order through MCS
+   * @param {string} orderId
+   * @returns {Object}
+   */
+  routeOrder(orderId) {
+    const order = this.state.orders.get(orderId);
+    if (!order) return { success: false, error: 'Order not found' };
+
+    this.state.mcsStatus = 'calculating';
+    this.notify();
+
+    // Simulate async calculation
+    setTimeout(() => {
+      const result = this.mcs.routeOrder(order);
+      order.routeType = result.selected?.type || RouteType.BLOCKED;
+      order.routeCost = result.selected?.totalCost || 0;
+      order.routeEta = result.selected?.etaHours || 0;
+      order.classicCost = result.selected?.marketplaceEconomics?.classicCost || 0;
+      order.pvzReward = result.selected?.pvzReward || 0;
+
+      order.events.push({
+        type: 'routed',
+        timestamp: this.state.virtualTime.currentTime,
+        details: { routeType: order.routeType, cost: order.routeCost, reason: result.reason }
+      });
+
+      this.state.mcsStatus = 'ready';
+      this.notify();
+    }, 100);
+
+    return { success: true };
+  }
+
+  /**
+   * Process order action (state transition)
+   * @param {string} orderId
+   * @param {string} action
+   * @returns {Object}
+   */
+  processOrderAction(orderId, action) {
+    const order = this.state.orders.get(orderId);
+    if (!order) return { success: false, error: 'Order not found' };
+
+    const validTransitions = {
+      [OrderStatus.NEW]: ['receive', 'cancel'],
+      [OrderStatus.RECEIVED]: ['store', 'cancel'],
+      [OrderStatus.STORED]: ['pack', 'cancel'],
+      [OrderStatus.ORDERED]: ['pack', 'cancel'],
+      [OrderStatus.PACKED]: ['dispatch', 'cancel'],
+      [OrderStatus.DISPATCHED]: ['issue', 'cancel'],
+      [OrderStatus.IN_TRANSIT]: ['issue', 'exception'],
+      [OrderStatus.ISSUED]: ['settle', 'return'],
+      [OrderStatus.SETTLED]: ['return'],
+      [OrderStatus.RETURNED]: [],
+      [OrderStatus.CANCELLED]: [],
+      [OrderStatus.DAMAGED]: [],
+      [OrderStatus.EXCEPTION]: [],
+      [OrderStatus.QUARANTINE]: []
+    };
+
+    const allowed = validTransitions[order.status] || [];
+    if (!allowed.includes(action)) {
+      return { success: false, error: `Invalid action ${action} for status ${order.status}` };
+    }
+
+    let newStatus = order.status;
+    let eventDetails = {};
+
+    switch (action) {
+      case 'receive':
+        newStatus = OrderStatus.RECEIVED;
+        // Reserve inventory at source PVZ
+        break;
+      case 'store':
+        newStatus = OrderStatus.STORED;
+        break;
+      case 'pack':
+        newStatus = OrderStatus.PACKED;
+        break;
+      case 'dispatch':
+        newStatus = OrderStatus.DISPATCHED;
+        eventDetails = { routeType: order.routeType, eta: order.routeEta };
+        break;
+      case 'issue':
+        newStatus = OrderStatus.ISSUED;
+        break;
+      case 'settle':
+        newStatus = OrderStatus.SETTLED;
+        this.recordFinancialSnapshot(order);
+        break;
+      case 'return':
+        newStatus = OrderStatus.RETURNED;
+        this.processReturn(order);
+        break;
+      case 'cancel':
+        newStatus = OrderStatus.CANCELLED;
+        break;
+    }
+
+    order.status = newStatus;
+    order.events.push({
+      type: action,
+      timestamp: this.state.virtualTime.currentTime,
+      details: eventDetails
+    });
+
+    this.notify();
+    return { success: true, newStatus };
+  }
+
+  /**
+   * Process return
+   */
+  processReturn(order) {
+    const pvz = this.state.pvzs.get(order.destinationPvzId);
+    if (pvz && pvz.inventory) {
+      // Add back to inventory as quarantine
+      pvz.inventory.push({
+        id: `inv-${generateId()}`,
+        productId: order.productId,
+        quantity: order.quantity,
+        batchId: `return-${order.id}`,
+        receivedAt: this.state.virtualTime.currentTime,
+        status: 'quarantine',
+        daysStored: 0
+      });
+      pvz.occupiedCapacity += order.quantity;
+    }
+  }
+
+  /**
+   * Record financial snapshot
+   */
+  recordFinancialSnapshot(order) {
+    const day = this.state.virtualTime.currentDay;
+    let snapshot = this.state.financialSnapshots.find(s => s.day === day);
+    if (!snapshot) {
+      snapshot = { day, ordersCount: 0, revenue: 0, meshCost: 0, classicCost: 0, savings: 0, pvzMargin: 0, pvzBreakdown: {} };
+      this.state.financialSnapshots.push(snapshot);
+    }
+    snapshot.ordersCount++;
+    snapshot.revenue += order.routeCost || 0;
+    snapshot.meshCost += order.routeCost || 0;
+    snapshot.classicCost += order.classicCost || 0;
+    snapshot.savings += (order.classicCost || 0) - (order.routeCost || 0);
+    snapshot.pvzMargin += order.pvzReward || 0;
+
+    const pvzId = order.destinationPvzId;
+    snapshot.pvzBreakdown[pvzId] = (snapshot.pvzBreakdown[pvzId] || 0) + (order.pvzReward || 0);
+  }
+
+  // ============================================
+  // DEMO SCENARIOS
+  // ============================================
+
+  /**
+   * Run demo scenario
+   * @param {string} scenarioId
+   */
+  runDemoScenario(scenarioId) {
+    const scenario = this.state.demoScenarios.find(s => s.id === scenarioId);
+    if (!scenario) return;
+
+    // Reset demo state
+    this.resetDemo();
+
+    let stepIndex = 0;
+    const runStep = () => {
+      if (stepIndex >= scenario.steps.length) return;
+
+      const step = scenario.steps[stepIndex];
+      console.log(`[Demo ${scenarioId}] Step ${stepIndex + 1}: ${step}`);
+
+      // Execute step based on scenario
+      this.executeDemoStep(scenarioId, stepIndex);
+
+      stepIndex++;
+      if (scenario.autoAdvance && stepIndex < scenario.steps.length) {
+        setTimeout(runStep, scenario.stepDelayMs);
+      }
+    };
+
+    runStep();
+  }
+
+  /**
+   * Execute demo step
+   */
+  executeDemoStep(scenarioId, stepIndex) {
+    const state = this.state;
+    const pvzs = Array.from(state.pvzs.values()).filter(p => p.type === PVZType.MESH);
+    if (pvzs.length === 0) return;
+
+    const permMesh = pvzs.find(p => p.cityId === City.PERM);
+    const ekbMesh = pvzs.find(p => p.cityId === City.EKATERINBURG);
+    const kazanMesh = pvzs.find(p => p.cityId === City.KAZAN);
+    const product = Array.from(state.products.values())[0];
+
+    switch (scenarioId) {
+      case 'city_order':
+        this.executeCityOrderStep(stepIndex, permMesh, product);
+        break;
+      case 'intercity_order':
+        this.executeIntercityOrderStep(stepIndex, permMesh, ekbMesh, product);
+        break;
+      case 'return_flow':
+        this.executeReturnFlowStep(stepIndex, permMesh, product);
+        break;
+      case 'route_failure':
+        this.executeRouteFailureStep(stepIndex, permMesh, kazanMesh, product);
+        break;
+      case 'long_storage':
+        this.executeLongStorageStep(stepIndex, permMesh, product);
+        break;
+    }
+  }
+
+  executeCityOrderStep(step, pvz, product) {
+    switch (step) {
+      case 0:
+        this.demoOrderId = this.createOrder({
+          productId: product.id,
+          quantity: 3,
+          destinationPvzId: pvz.id,
+          sourcePvzId: pvz.id,
+          sellerId: product.sellerId
+        }).id;
+        break;
+      case 1: this.routeOrder(this.demoOrderId); break;
+      case 2: this.processOrderAction(this.demoOrderId, 'receive'); break;
+      case 3: this.processOrderAction(this.demoOrderId, 'store'); break;
+      case 4: this.processOrderAction(this.demoOrderId, 'pack'); break;
+      case 5: this.processOrderAction(this.demoOrderId, 'dispatch'); break;
+      case 6: this.processOrderAction(this.demoOrderId, 'issue'); break;
+      case 7: this.processOrderAction(this.demoOrderId, 'settle'); break;
+    }
+  }
+
+  executeIntercityOrderStep(step, permPvz, ekbPvz, product) {
+    switch (step) {
+      case 0:
+        this.demoOrderId = this.createOrder({
+          productId: product.id,
+          quantity: 5,
+          destinationPvzId: ekbPvz.id,
+          sourcePvzId: permPvz.id,
+          sellerId: product.sellerId
+        }).id;
+        break;
+      case 1: this.routeOrder(this.demoOrderId); break;
+      case 2: this.processOrderAction(this.demoOrderId, 'receive'); break;
+      case 3: this.processOrderAction(this.demoOrderId, 'store'); break;
+      case 4: this.processOrderAction(this.demoOrderId, 'pack'); break;
+      case 5: this.processOrderAction(this.demoOrderId, 'dispatch'); break;
+      case 6: this.processOrderAction(this.demoOrderId, 'issue'); break;
+      case 7: this.processOrderAction(this.demoOrderId, 'settle'); break;
+    }
+  }
+
+  executeReturnFlowStep(step, pvz, product) {
+    switch (step) {
+      case 0:
+        this.demoOrderId = this.createOrder({
+          productId: product.id,
+          quantity: 2,
+          destinationPvzId: pvz.id,
+          sourcePvzId: pvz.id,
+          sellerId: product.sellerId
+        }).id;
+        break;
+      case 1: this.routeOrder(this.demoOrderId); break;
+      case 2: this.processOrderAction(this.demoOrderId, 'receive'); break;
+      case 3: this.processOrderAction(this.demoOrderId, 'store'); break;
+      case 4: this.processOrderAction(this.demoOrderId, 'pack'); break;
+      case 5: this.processOrderAction(this.demoOrderId, 'dispatch'); break;
+      case 6: this.processOrderAction(this.demoOrderId, 'issue'); break;
+      case 7: this.processOrderAction(this.demoOrderId, 'settle'); break;
+      case 8: this.processOrderAction(this.demoOrderId, 'return'); break;
+    }
+  }
+
+  executeRouteFailureStep(step, permPvz, kazanPvz, product) {
+    switch (step) {
+      case 0:
+        this.demoOrderId = this.createOrder({
+          productId: product.id,
+          quantity: 10,
+          destinationPvzId: kazanPvz.id,
+          sourcePvzId: permPvz.id,
+          sellerId: product.sellerId
+        }).id;
+        break;
+      case 1: this.routeOrder(this.demoOrderId); break;
+      case 2: this.processOrderAction(this.demoOrderId, 'cancel'); break; // simulate failure
+      case 3:
+        // Re-create and re-route
+        this.demoOrderId = this.createOrder({
+          productId: product.id,
+          quantity: 10,
+          destinationPvzId: kazanPvz.id,
+          sourcePvzId: permPvz.id,
+          sellerId: product.sellerId
+        }).id;
+        this.routeOrder(this.demoOrderId);
+        break;
+    }
+  }
+
+  executeLongStorageStep(step, pvz, product) {
+    switch (step) {
+      case 0:
+        this.demoOrderId = this.createOrder({
+          productId: product.id,
+          quantity: 1,
+          destinationPvzId: pvz.id,
+          sourcePvzId: pvz.id,
+          sellerId: product.sellerId
+        }).id;
+        break;
+      case 1: this.routeOrder(this.demoOrderId); break;
+      case 2: this.processOrderAction(this.demoOrderId, 'receive'); break;
+      case 3: this.processOrderAction(this.demoOrderId, 'store'); break;
+      case 4:
+        // Advance 30 days
+        for (let i = 0; i < 30 * 24; i++) this.stepTime(1);
+        break;
+      case 5: this.processOrderAction(this.demoOrderId, 'pack'); break;
+      case 6: this.processOrderAction(this.demoOrderId, 'dispatch'); break;
+      case 7: this.processOrderAction(this.demoOrderId, 'issue'); break;
+      case 8: this.processOrderAction(this.demoOrderId, 'settle'); break;
+    }
+  }
+
+  /**
+   * Reset demo to initial state
+   */
+  resetDemo() {
+    // Clear orders
+    this.state.orders.clear();
+    // Reset inventory
+    for (const pvz of this.state.pvzs.values()) {
+      pvz.inventory = [];
+      pvz.occupiedCapacity = 0;
+    }
+    this.seedInitialInventory(this.state.pvzs, this.state.products);
+    // Clear MCS log
+    this.state.mcsDecisionLog = [];
+    this.notify();
+  }
+
+  // ============================================
+  // FORECASTING
+  // ============================================
+
+  /**
+   * Get demand forecast for product
+   * @param {string} productId
+   * @returns {Object}
+   */
+  getForecast(productId) {
+    const history = this.state.salesHistory.get(productId);
+    if (!history) return null;
+    // Import DemandForecast dynamically to avoid circular dependency
+    const { DemandForecast } = require('./mcs-engine.js');
+    return DemandForecast.forecastNextDay(history, 7, this.state.tariffs);
+  }
+
+  // ============================================
+  // EXPORT / IMPORT
+  // ============================================
+
+  /**
+   * Export state to JSON
+   * @returns {string}
+   */
+  exportState() {
+    const serializable = {
+      ...this.state,
+      cities: Array.from(this.state.cities.entries()),
+      pvzs: Array.from(this.state.pvzs.entries()),
+      products: Array.from(this.state.products.entries()),
+      sellers: Array.from(this.state.sellers.entries()),
+      orders: Array.from(this.state.orders.entries()),
+      salesHistory: Array.from(this.state.salesHistory.entries())
+    };
+    return JSON.stringify(serializable, null, 2);
+  }
+
+  /**
+   * Import state from JSON
+   * @param {string} json
+   */
+  importState(json) {
+    const data = JSON.parse(json);
+    this.state.cities = new Map(data.cities);
+    this.state.pvzs = new Map(data.pvzs);
+    this.state.products = new Map(data.products);
+    this.state.sellers = new Map(data.sellers);
+    this.state.orders = new Map(data.orders);
+    this.state.salesHistory = new Map(data.salesHistory);
+    this.state.tariffs = data.tariffs || deepClone(DEFAULT_TARIFFS);
+    this.state.virtualTime = data.virtualTime || this.state.virtualTime;
+    this.state.ui = data.ui || this.state.ui;
+    this.state.mcsDecisionLog = data.mcsDecisionLog || [];
+    this.state.financialSnapshots = data.financialSnapshots || [];
+    this.state.demoScenarios = this.createDemoScenarios();
+    this.mcs = new MCS({
+      pvzs: this.state.pvzs,
+      cities: this.state.cities,
+      tariffs: this.state.tariffs,
+      orders: this.state.orders
+    });
+    this.notify();
+  }
+}
+
+// Singleton instance
+let instance = null;
+
+/**
+ * Get StateManager singleton
+ * @returns {StateManager}
+ */
+export function getStateManager() {
+  if (!instance) {
+    instance = new StateManager();
+  }
+  return instance;
+}
+
+// For backward compatibility
+StateManager.getInstance = getStateManager;
+
+export { StateManager };

@@ -1,0 +1,23 @@
+{
+  "name": "wb-mesh-control-system",
+  "version": "1.0.0-hackathon",
+  "description": "WB Mesh Control System for RWB × PGU TOP AI START Hackathon",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test src/**/*.test.js"
+  },
+  "keywords": [
+    "wildberries",
+    "mesh",
+    "logistics",
+    "hackathon",
+    "rwb",
+    "pgu"
+  ],
+  "author": "WB Mesh Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
