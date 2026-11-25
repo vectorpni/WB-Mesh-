@@ -1,0 +1,27 @@
+{
+    "business_info":  {
+                          "verified_constraints":  [
+                                                       "WB Partners documents seller FBS fulfillment from the seller inventory. The seller packs and labels orders and hands them in at a qualifying pickup point (PVZ) or a sorting center. At PVZ, staff scan the parcel QR and item stickers. An overloaded PVZ may decline the shipment. Eligibility is conditional on packaging and parcel dimensions, and excludes some flows.",
+                                                       "The current FBS packaging guide lists 80 cm for a transport box side, 140 cm for the sum of item dimensions, and 25 kg for an individual item. These are examples of current FBS packaging rules and do not establish Mesh vehicle, point or shelf capacity.",
+                                                       "The FBS shipment guide describes pickup by logisticians for a warehouse, a sorting center or buyers directly. This public guide does not establish which specific lanes run direct PVZ-to-PVZ or how often.",
+                                                       "Seller auto-returns and buyer-requested returns have distinct flows. The seller guidance describes eligible FBS auto-returns to a designated pickup point or to a WB warehouse according to the documented settings. A separate, region-limited process checks, repackages and offers an eligible refusal for reorder while it travels to the sorting center."
+                                                   ],
+                          "case_implication":  [
+                                                   "Show WB Mesh as a checkpoint pilot proposal for eligible same-city batches. Evidence supports the plausibility of scanning handoffs, enforcing acceptance capacity, and planning fallback, but does not establish planned shelf inventory or direct PVZ-to-PVZ routing as an existing default.",
+                                                   "Position MCS as the product decision rule: admit a compatible local batch only if WB cost improves, PVZ net contribution after labor and shelf space is nonnegative, seller terms are unchanged, the buyer promise holds, and storage and vehicle capacity both suffice. Keep the hub alternative or reject if no route is feasible.",
+                                                   "Avoid claiming no previous local movement, universal hub routing, or market-first status. The published virtual-stock use case is a comparison rather than proof of the new operating model."
+                                               ],
+                          "unverified_costs":  "[uncertain] WB internal route costs, current per-lane economics, partner remuneration or margin, labor and space opportunity cost, true return and failure exposure, and actual lane eligibility and SLA are unknown. No seller-facing tariffs were borrowed into the case model.",
+                          "sources":  [
+                                          "WB Partners Russia, FBS shipment handover, evidenced process and onward transport: https://seller.wildberries.ru/instructions/ru/ru/material/step-three-b-fbs-shipment-delivery-to-pick-up-point",
+                                          "WB Partners Russia, FBS packaging, evidenced package dimensions and labeling: https://seller.wildberries.ru/instructions/ru/ru/material/how-to-pack-items-in-fbs",
+                                          "WB Partners Russia, FBS self-acceptance, evidenced seller stock and WB responsibilities: https://seller.wildberries.ru/instructions/ru/ru/material/self-acceptance-at-sorting-centre-in-fbs",
+                                          "WB Partners Russia, seller auto-returns, evidenced return-routing choices: https://seller.wildberries.ru/instructions/ru/ru/material/item-auto-return-to-seller",
+                                          "WB Partners, regional refused-item reorder, evidenced limited virtual-stock practice including listed Russian regions: https://seller.wildberries.ru/instructions/ru/am/material/reordering-items-that-were-refused-at-pick-up-point?recommended=true",
+                                          "WB Partners Russia, buyer-requested returns, evidenced status and return handling: https://seller.wildberries.ru/instructions/ru/ru/material/item-returns-by-customer-request?categoryId=8499952e-79d5-4be4-9c75-4aa29e0eb146\u0026goBackOption=prevRoute"
+                                      ]
+                      },
+    "uncertain":  [
+                      "unverified_costs"
+                  ]
+}

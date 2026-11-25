@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Mesh Gate · операционный стенд</title><link rel="stylesheet" href="/style.css"></head>
+<body><header><div><div class="brand">MESH GATE</div><h1>Когда заказу нужен хаб?</h1><p>Решение о городском рейсе и экономика заказа на одном экране.</p></div><span>Демонстрационные данные</span></header>
+<main><section class="controls" aria-label="Настройки сценария">
+<label>Сценарий<select id="scenario"></select></label>
+<label>Ожидается заказов<input id="batch" type="number" min="1" max="100"></label>
+<label>Дней на полке<input id="days" type="number" min="0" max="30"></label>
+<label>Доля возвратов, %<input id="rate" type="number" min="0" max="100"></label>
+<button id="reset" class="quiet">Пересчитать / новый заказ</button>
+</section><p id="error" role="alert" hidden></p>
+<details class="panel stress"><summary>Проверить устойчивость</summary><div class="controls">
+<label>Отмены, %<input id="cancels" type="number" min="0" max="100"></label>
+<label>Недобор, шт.<input id="shortfall" type="number" min="0" max="100"></label>
+<label>Рост цены топлива, %<input id="fuel" type="number" min="0" max="500"></label>
+<label>Простой, ч<input id="wait" type="number" min="0" max="72"></label>
+<label>Риск повреждения, %<input id="damage-rate" type="number" min="0" max="100"></label>
+<label>Ущерб при повреждении, ₽<input id="damage-cost" type="number" min="0" max="1000000" step="0.01"></label>
+<label>Потеря времени при сбое, ч<input id="fallback" type="number" min="0" max="72"></label>
+</div></details>
+<div class="grid"><section class="panel"><h2>Решение о маршруте</h2>
+<p class="route" id="route" aria-live="polite"></p><p id="reason"></p><p id="threshold"></p>
+<dl class="stats"><div><dt>Через хаб</dt><dd id="hub"></dd></div><div><dt>Кандидат mesh</dt><dd id="mesh"></dd></div><div><dt>Разница</dt><dd id="saving"></dd></div></dl>
+<div id="legs" class="legs" aria-label="Этапы выбранного маршрута"></div>
+<p class="caption" id="breakdown"></p></section>
+<section class="panel"><h2>Сквозной заказ</h2><p id="stage" aria-live="polite"></p>
+<div id="steps" class="steps"></div><div class="actions"><button id="next"></button><button id="fail" class="quiet" hidden>Сбой перед отправкой</button><button id="cancel" class="quiet" hidden>Отменить заказ</button><button id="damage" class="quiet" hidden>Зафиксировать повреждение</button></div>
+<p id="stock" class="caption"></p></section></div>
+<section class="panel finance"><div class="fin-head"><h2>Аналитика участников</h2><div class="tabs" role="group" aria-label="Роль"><button id="pvz" aria-pressed="true">ПВЗ</button><button id="seller" aria-pressed="false">Продавец</button><button id="platform" aria-pressed="false">Маркетплейс</button></div></div>
+<div id="finance"></div><p id="customer" class="caption"></p></section>
+<details class="panel stress"><summary>Эксперимент с прогнозом партии</summary><p id="forecast"></p><p class="caption">Синтетический ряд с сезонностью. Маршрут продажи определяется доступной партией и ограничениями. Прогноз предназначен для планирования.</p></details>
+</main><script type="module" src="/ui.mjs"></script></body></html>
