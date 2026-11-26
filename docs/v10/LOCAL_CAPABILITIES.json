@@ -1,0 +1,37 @@
+{
+  "config_metadata": [
+    {
+      "path": "C:\\Users\\Павел\\.codex\\config.toml",
+      "mcp_server_names": [
+        "node_repl"
+      ],
+      "note": "Names only; no secrets, endpoints, env, arguments copied"
+    },
+    {
+      "path": "C:\\Users\\Павел\\.claude\\.claude.json",
+      "mcp_server_names": [],
+      "note": "Names only; no secrets, endpoints, env, arguments copied"
+    },
+    {
+      "path": "C:\\Users\\Павел\\.claude.json",
+      "mcp_server_names": [],
+      "note": "Names only; no secrets, endpoints, env, arguments copied"
+    }
+  ],
+  "python_module_discoverable_without_import": {
+    "sqlite3": true,
+    "fastapi": false,
+    "uvicorn": false,
+    "sqlalchemy": false,
+    "numpy": false,
+    "pandas": false,
+    "scipy": false,
+    "ortools": false,
+    "shapely": false,
+    "geopandas": false,
+    "openpyxl": true,
+    "pptx": true,
+    "playwright": false
+  },
+  "note": "Discovery is not runtime/integration proof; no packages installed"
+}
