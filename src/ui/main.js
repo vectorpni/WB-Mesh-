@@ -65,7 +65,7 @@ async function initApp() {
   document.getElementById('roleSelect').value=window.appState.state.ui.role;
   const initialTab=location.hash.slice(1)||window.appState.state.ui.activeTab;
   if(['dashboard','pvz','seller','mcs','economics','demo','settings'].includes(initialTab)) switchTab(initialTab);
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(e=>console.warn('Автономный кэш недоступен:',e.message));
+  if('serviceWorker' in navigator) navigator.serviceWorker.register(new URL('../../sw.js', import.meta.url)).catch(e=>console.warn('Автономный кэш недоступен:',e.message));
   console.log('[WB Mesh] Ready');
   showToast('Система готова', 'success');
 }
