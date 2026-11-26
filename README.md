@@ -83,14 +83,14 @@ No build step required — pure ES modules, runs in any modern browser.
 ### Unit Economics (per order)
 | Component | Classic | Mesh (5 orders/trip) |
 |-----------|---------|---------------------|
-| Transport | 35₽ | 9.6₽ (48₽/5) |
-| Storage | 20₽ | 15₽ |
-| Sorting | 10₽ | 8₽ |
-| Last Mile | 25₽ | 25₽ |
-| PVZ | 15₽ | 15₽ |
-| Returns | 10₽ | 6₽ |
-| IT | 5₽ | 5₽ |
-| **Total** | **120₽** | **83.6₽** |
+| Transport | 24₽ | 9.6₽ (48₽/5) |
+| Storage | 12₽ | 13₽ |
+| Sorting | 14₽ | 8₽ |
+| Last Mile | 24₽ | 20₽ |
+| PVZ | 13₽ | 14₽ |
+| Returns | 7₽ | 6₽ |
+| IT | 6₽ | 8₽ |
+| **Total** | **100₽** | **92.96₽** |
 
 ### PVZ Economics
 - **Payout**: 39₽ (6₽ receive + 15₽ storage + 18₽ pack)

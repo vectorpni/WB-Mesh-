@@ -115,7 +115,7 @@ class StateManager {
         selectedPvzId: null,
         selectedSellerId: null,
         activeTab: 'dashboard',
-        role: UserRole.OWNER
+        role: UserRole.PVZ_OWNER
       },
 
       // Virtual time
