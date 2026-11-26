@@ -1,0 +1,150 @@
+{
+  "item_name": "WB Mesh V8 source alignment audit",
+  "sources_read": [
+    "C:/Sites/RWB-Mesh/research-v8/fields.yaml",
+    "C:/Sites/RWB-Mesh/evidence/sources/ТЗ_сайт_MVP_WB_Mesh_хакатон,_ТОП_ИИ_Старт_дополненное.txt",
+    "C:/Sites/RWB-Mesh/evidence/sources/Описание_кейса_Mesh_доставка_RWB_ПГТУ.txt",
+    "C:/Sites/RWB-Mesh/evidence/sources/WB_Mesh_otchet_исправленный.txt",
+    "C:/Sites/RWB-Mesh/evidence/sources/WB Mesh - редактируемая (2).txt",
+    "C:/Sites/RWB-Mesh/src/core/planning-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/route-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/order-operations.js",
+    "C:/Sites/RWB-Mesh/src/core/inventory-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/state-validation.js",
+    "C:/Sites/RWB-Mesh/src/core/forecast-engine.js"
+  ],
+  "verified_findings": [
+    {
+      "id": "SA-01",
+      "severity": "P0",
+      "origin": "Pre-existing global lookup assumption remains in V8 receipt and reservation APIs",
+      "requirement": "TZ sections 5.4 and 7.3 require stock to be scoped to SKU and node and reservations to affect the selected source only.",
+      "evidence": "InventoryManager.receive checks existing batchId only within one node; getItem(batchId) searches every node and returns the first match. Runtime reproduction accepted batch duplicate-batch at both pvz-perm-plus and pvz-perm-krasnov, and reserve(duplicate-batch,1,test) selected pvz-perm-plus.",
+      "impact": "A repeated human batch code at two nodes can reserve or issue stock at the wrong physical node. Imported duplicate batch IDs are also unchecked."
+    },
+    {
+      "id": "SA-02",
+      "severity": "P0",
+      "origin": "Existing aging mutation becomes inconsistent with the new V8 journal reconciliation",
+      "requirement": "TZ sections 5.4 and 7.3 require all physical stock bucket changes to be reconstructible from events.",
+      "evidence": "Runtime reproduction: new StateManager().stepTime(61*24) quarantines expired lots, but reconcile().success becomes false because ageInventory changes status without auditEvent.",
+      "impact": "Virtual-clock testing alone produces unexplained stock differences."
+    },
+    {
+      "id": "SA-03",
+      "severity": "P1",
+      "origin": "Required failure behavior is not implemented in current route pipeline",
+      "requirement": "TZ sections 1.1, 5.3 and 7.8 require new orders to use C1/C2 when MCS is unavailable.",
+      "evidence": "Runtime reproduction: setting state.mcsStatus to error before creating a local order still selects M1. RouteOptimizer.findCandidates/build do not read MCS availability.",
+      "impact": "The displayed MCS failure state does not change routing policy."
+    },
+    {
+      "id": "SA-04",
+      "severity": "P1",
+      "origin": "Unimplemented mandatory source feature",
+      "requirement": "TZ section 5.5 and presentation slide 5 require mandatory withdrawal of expired stock after 60 days.",
+      "evidence": "At 61 virtual days transfers.length remains zero. InventoryManager.ageBatches sets withdrawalRequired; StateManager.ageInventory quarantines. Neither creates or executes withdrawal to the city hub.",
+      "impact": "The source presentation claim is not backed by a working withdrawal process."
+    },
+    {
+      "id": "SA-05",
+      "severity": "P1",
+      "origin": "Required operational model remains simplified",
+      "requirement": "TZ sections 4.3, 5.6 and 6.3 require measured packing bonuses, courier-delay penalties, hourly operation limits and queue impact.",
+      "evidence": "The reviewed order-operations.js transitions do not calculate packing minutes, actual operational bonuses or penalties. CostEngine.calculatePvzPayout adds a fixed bonus pool. Hourly operationalSlots is checked as a static positive number, not consumed per virtual hour.",
+      "impact": "Slow packing and repeated operations within one hour do not affect the partner result or effective throughput as specified."
+    },
+    {
+      "id": "SA-06",
+      "severity": "P1",
+      "origin": "Required multi-lot FIFO support is absent",
+      "requirement": "TZ sections 6.2 and 7.3 require FIFO stock-lot handling for SKU/node balances.",
+      "evidence": "RouteOptimizer.findCandidates filters individual lots with available(i)>=order.quantity. Multiple lots whose aggregate availability satisfies an order cannot be reserved together.",
+      "impact": "Two available lots of 30 units cannot fulfill an order of 40 despite 60 physically available units."
+    },
+    {
+      "id": "SA-07",
+      "severity": "P1",
+      "origin": "Required consolidation pipeline remains separate from ordinary order routing",
+      "requirement": "TZ sections 3.3 and 5.2 and presentation slide 2 require dynamic consolidation, future dispatch windows and existing transport use.",
+      "evidence": "RouteOptimizer.build uses batchSize:order.quantity. It does not obtain the ordinary order batch size from a shared trip or candidate arrival forecast. The new planning-engine schedules forecast-driven stock movements, but this does not consolidate ordinary buyer orders.",
+      "impact": "A one-unit buyer order is evaluated as a one-parcel dedicated trip even when compatible orders could share one departure."
+    },
+    {
+      "id": "SA-08",
+      "severity": "P1",
+      "origin": "Return disposition remains incomplete",
+      "requirement": "TZ section 5.5 requires inspected returns to be restocked only with sufficient forecast demand, otherwise transferred or returned to hub; actual disposition cost must be charged once.",
+      "evidence": "InventoryManager.resolveQuarantine permits resell with inspection.fit===true only; there is no demand check. processReturn records a profit reversal and an inspection payout but does not charge a seller return-disposition cost. The workspace inspection button only confirms fitness.",
+      "impact": "An unneeded inspected item can return to available stock and seller economics omit the actual return route cost."
+    },
+    {
+      "id": "SA-09",
+      "severity": "P1",
+      "origin": "Forecast target-stock formula differs from the supplied TZ",
+      "requirement": "TZ section 5.8 specifies sigma=MAD*1.4826 and sparse-demand shrinkage.",
+      "evidence": "forecast-engine.js recommend sets sigma=f.mae*1.4826. MAE is a forecast error average; it is not median absolute deviation. No sparse-local-history shrinkage is present in the reviewed implementation.",
+      "impact": "Target stocks and transfer quantities are generated from a different dispersion model than the claimed source."
+    },
+    {
+      "id": "SA-10",
+      "severity": "P1",
+      "origin": "Source dataset scope differs from implemented demo scope",
+      "requirement": "TZ sections 3.1, 5.8 and 7.9 specify 24 PVZ with 18 Mesh nodes, 60 SKU, eight categories and a 2000-order comparison set.",
+      "evidence": "The reviewed StateManager initializes the preserved DEMO maps. Existing regression tests require only three cities and at least 14 nodes, and the source UI uses four original products. No 2000-order paired comparison was inspected.",
+      "impact": "Do not claim acceptance at the full TZ dataset scale without extending it and measuring the resulting workload."
+    },
+    {
+      "id": "SA-11",
+      "severity": "P1",
+      "origin": "Required configuration unification is incomplete",
+      "requirement": "TZ section 7.6 requires one versioned tariff source including all rates and limits.",
+      "evidence": "CostEngine uses DEFAULT_TARIFFS but seller storage increments remain literal 140/180/300 kopecks; planning regional profiles are also embedded literals. No tariffs.yaml implementation was found in the reviewed scope.",
+      "impact": "Changing a model rate cannot consistently update every screen and operation from one configuration source."
+    },
+    {
+      "id": "SA-12",
+      "severity": "P1",
+      "origin": "Substantial presentation contradiction",
+      "requirement": "User part 11.1 requires presentation claims and financial calculations to agree without forcing erroneous values.",
+      "evidence": "Presentation slide 3 labels sorting saving as 3 rubles. TZ section 4.2 and corrected report use sorting 14 versus 10 rubles, a 4-ruble difference. The exact control saving is 7.04, whereas the presentation uses the rounded 7-ruble scale scenario.",
+      "impact": "Preserve the approved original, document the sorting discrepancy, and label rounded scale arithmetic separately from exact per-order arithmetic."
+    },
+    {
+      "id": "SA-13",
+      "severity": "P1",
+      "origin": "Offline claims exceed implemented synchronization scope",
+      "requirement": "Presentation slide 5 claims offline work with subsequent synchronization and redundant communication channels.",
+      "evidence": "The workspace settings accurately disclose local browser state and lack of real server synchronization. LocalStorage persistence is not multi-node conflict resolution or redundant channels.",
+      "impact": "Map this presentation claim to a roadmap item, not a completed function."
+    },
+    {
+      "id": "SA-14",
+      "severity": "P1",
+      "origin": "Physical scanning claim is not implemented",
+      "requirement": "Presentation slide 5 claims mandatory scanning at each handoff and material responsibility.",
+      "evidence": "Current order transitions are buttons without scan-token validation or a hardware scanner integration. A virtual handoff journal is implemented, but that does not establish physical scanning.",
+      "impact": "Identify this as simulated handoff confirmation or add explicit barcode validation and responsibility events."
+    }
+  ],
+  "required_fixes": [
+    "First resolve SA-01 by making batch identity globally unique or node-scoped and reject ambiguous imported batch identifiers; prove reservation/issue cannot touch another node.",
+    "Resolve SA-02 by recording aging bucket transitions in the same event journal and add reconcile assertions immediately after large virtual-time steps.",
+    "Add explicit MCS availability policy producing only viable C1/C2 candidates, with a regression test for state.mcsStatus=error.",
+    "Implement a mandatory expired-stock withdrawal task with real transit and hub receipt, or mark the unsupported presentation claim as planned until implemented.",
+    "Implement operational timing bonuses/penalties and hourly load counters before claiming full partner economics.",
+    "Support atomic FIFO allocation across multiple lots or explicitly reject that unsupported input with an honest limitation.",
+    "Connect ordinary buyer orders to shared trip batches and departure windows; retain nonzero marginal cost for existing transport.",
+    "Validate inspected-return disposition against demand and capacity, post actual return route costs once, and expose the resulting seller economics.",
+    "Use the specified MAD dispersion or document a mathematically justified alternative; centralize remaining literal model rates.",
+    "Complete a slide-by-slide PRESENTATION-MATRIX with implemented, simulated and planned status; include source slide 3 sorting discrepancy and offline/scanning gaps."
+  ],
+  "limitations": [
+    "This is a read-only audit of a moving working tree based on branch feature/codex-v8 after commit e56e0d8. The root agent is editing concurrently; recheck each finding before final publication.",
+    "The supplied text files were read in several tool chunks; some long command outputs were truncated. Specific quoted sections and reproduced defects are verified, but full-document exhaustiveness is not claimed by this child audit.",
+    "This child inspected extracted presentation text only; visual rendering and all five slides were handled by the parent agent.",
+    "No browser or performance pass is inferred from the source inspection. No external human specialists were involved.",
+    "The original organizer description permits a local prototype for the first-year nomination; absence of SQL, Docker or a complex API is not itself a critical failure."
+  ],
+  "uncertain": []
+}

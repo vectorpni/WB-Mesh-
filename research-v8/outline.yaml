@@ -1,0 +1,10 @@
+topic: WB Mesh V8 independent evidence audit
+items:
+  - name: source_alignment
+    description: Verify supplied TZ and five-slide presentation against current source and screens; identify contradictions and unimplemented claims.
+  - name: core_correctness
+    description: Verify financial arithmetic, state transitions, invariants and failure handling in current V8 source.
+execution:
+  batch_size: 2
+  items_per_agent: 1
+  output_dir: C:/Sites/RWB-Mesh/research-v8/results

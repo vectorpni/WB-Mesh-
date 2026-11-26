@@ -119,6 +119,7 @@ export class CostEngine {
     const etaHours = {M1:1,M2:6,C1:40,C2:60}[route];
     const savings = classic.total - total;
     return { route, total, breakdown, classic, trip, savings, days, batchSize, etaHours,
+      parameters:{route,batchSize,days,stops,waitMinutes,returnRate,resaleShare,price,purchaseCost,commissionRate,promisedHours},
       formula: 'Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)',
       wb: { cost: total, revenue: fee, margin: fee-total, baselineMargin: classicFee-classic.total },
       pvz: { ordinaryReward: t.classicPVZ, revenue: pvzRevenue, cost: pvzCost, result: pvzRevenue-pvzCost },
@@ -134,6 +135,22 @@ export class CostEngine {
     const meshOrders = Math.round(monthlyOrders*meshShare);
     const gross = Math.round(meshOrders*savings);
     return {meshOrders,gross,fixedMonthly,net:gross-fixedMonthly,annual:(gross-fixedMonthly)*12};
+  }
+
+  calculateInvestment({unitSavings=704,monthlyOrders=80000000,fixedMonthly=0,initialInvestment=9000000000,nodeInvestment=1500000,annualDiscount=.2,months=36}={}) {
+    for(const [key,value]of Object.entries({unitSavings,monthlyOrders,fixedMonthly,initialInvestment,nodeInvestment,annualDiscount,months}))numberInRange(value,key);
+    let npv=-initialInvestment,balance=-initialInvestment,benefits=0,costs=initialInvestment,nodes=0,payback=null;
+    const cashflows=[];
+    for(let month=1;month<=months;month++){
+      const share=month<=3?.002:month<=9?.02:month<=18?.1:.3;
+      const orders=Math.round(monthlyOrders*share),needed=Math.ceil(orders/1000),capex=Math.max(0,needed-nodes)*nodeInvestment;
+      nodes=Math.max(nodes,needed);const gross=orders*unitSavings,opex=fixedMonthly*(month<=3?.3:1),cash=gross-opex-capex;
+      balance+=cash;npv+=cash/(1+annualDiscount)**(month/12);benefits+=gross;costs+=opex+capex;
+      if(payback===null&&balance>=0)payback=month;
+      cashflows.push({month,share,orders,gross,opex,capex,cash,balance});
+    }
+    return {npv:Math.round(npv),roi:costs?(benefits-costs)/costs:null,payback,benefits,costs,cashflows,
+      formula:'NPV = −I0 + Σ CFm / (1+r)^(m/12); ROI = (выгода−затраты)/затраты'};
   }
 
   static calculateTripCost(t,...args) { return new CostEngine(t).calculateTripCost(...args); }

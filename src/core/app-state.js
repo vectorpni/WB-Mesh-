@@ -1,3 +1,4 @@
+import {createWithdrawalTasks} from './withdrawal-engine.js';
 import {stockProjection,reconcileStock,auditEvent} from './stock-audit.js';
 import {validateState,validateTariffs} from './state-validation.js';
 /**
@@ -184,9 +185,10 @@ class StateManager {
       stockCheckpoint: stockProjection(pvzs),
       scheduledTrips: [...cities.values()].flatMap((city,i) => {
         const nodes=[...pvzs.values()].filter(p=>p.type==='mesh' && p.cityId===city.id);
-        return nodes.length>1 ? [{id:`existing-${city.id}`,kind:'backhaul',status:'planned',nodes:[city.hubId,...nodes.map(p=>p.id),city.hubId],departureTime:13,capacity:80,booked:0,additionalFixed:500,additionalPerUnit:300}] : [];
+        return nodes.length>1 ? [{id:`existing-${city.id}`,kind:'backhaul',status:'planned',recurring:true,nodes:[city.hubId,...nodes.map(p=>p.id),city.hubId],departureTime:13,capacity:80,booked:0,additionalFixed:500,additionalPerUnit:300}] : [];
       }),
       transfers: [],
+      withdrawals: [],
       eventLog: [],
       ledger: [],
       notifications: []
@@ -237,7 +239,7 @@ class StateManager {
 
       for (let day = 0; day < 84; day++) { // 12 weeks
         const weeklyPattern = 1 + 0.3 * Math.sin((day % seasonality) / seasonality * 2 * Math.PI);
-        const trendFactor = 1 + trend * day;
+        const trendFactor = 1 + trend * day / 84;
         const noise = 1 + (seededRandom() - 0.5) * 0.4;
         const demand = Math.max(0, Math.round(baseDemand * weeklyPattern * trendFactor * noise));
         history.push(demand);
@@ -433,15 +435,9 @@ class StateManager {
   }
 
   ageInventory(hours) {
-    for (const pvz of this.state.pvzs.values()) {
-      if (!pvz.inventory) continue;
-      for (const item of pvz.inventory) {
-        item.daysStored = (item.daysStored || 0) + hours / 24;
-        if (item.daysStored > 60 && item.status === 'available') {
-          item.status = 'quarantine';
-        }
-      }
-    }
+    this.mcs.inventoryManager.ageBatches(hours);
+    createWithdrawalTasks(this.state);
+    auditEvent(this.state,{id:`time-${this.state.eventLog.length}`,type:'TIME_ADVANCED',timestamp:this.state.virtualTime.currentTime,details:{hours}});
   }
 
   // ============================================
@@ -452,7 +448,7 @@ class StateManager {
     const node=this.state.pvzs.get(id); if(!node) return;
     node.status=status;
     for(const o of this.state.orders.values()) if(['new','received'].includes(o.status)) {
-      if(o.reservation) {this.mcs.inventoryManager.releaseReservation(o.reservation.batchId,o.quantity,o.id);o.reservation=null;}
+      if(o.reservation) {for(const b of o.reservation.batches)this.mcs.inventoryManager.releaseReservation(b.batchId,b.quantity,b.reservationKey || o.id);o.reservation=null;}
       this.routeOrder(o.id);
     }
     this.notify();
@@ -785,6 +781,7 @@ class StateManager {
     this.state.ledger = data.ledger || [];
     this.state.scheduledTrips = data.scheduledTrips || [];
     this.state.transfers = data.transfers || [];
+    this.state.withdrawals = data.withdrawals || [];
     this.state.openingStock = data.openingStock || {};
     this.state.stockCheckpoint = data.stockCheckpoint || stockProjection(this.state.pvzs);
     this.state.eventLog = data.eventLog || [];

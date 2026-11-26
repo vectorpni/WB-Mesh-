@@ -1,0 +1,87 @@
+{
+  "item_name": "WB Mesh V8 core correctness audit",
+  "sources_read": [
+    "C:/Sites/RWB-Mesh/research-v8/fields.yaml",
+    "C:/Sites/RWB-Mesh/src/core/order-operations.js",
+    "C:/Sites/RWB-Mesh/src/core/state-validation.js",
+    "C:/Sites/RWB-Mesh/src/core/inventory-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/cost-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/route-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/planning-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/forecast-engine.js",
+    "C:/Sites/RWB-Mesh/src/core/app-state.js"
+  ],
+  "verified_findings": [
+    {
+      "id": "CORE-01",
+      "severity": "P0",
+      "title": "Duplicate batch identifiers reserve physical stock at the wrong node",
+      "origin": "Existing global batch lookup design, still reachable through the V8 receipt form",
+      "location": "inventory-engine.js: getItem, receive, reserve; order-operations.js: routeOrder",
+      "reproduction": "Create a fresh StateManager. Receive product prod-1, quantity 70, batch duplicate-batch at pvz-perm-plus and at pvz-perm-krasnov. Both receipts succeed. Create a quantity-70 order whose source and destination are pvz-perm-krasnov; routeOrder succeeds with M1.",
+      "observed": "The order reservation records pvz-perm-krasnov, but actual stock summaries show pvz-perm-plus reserved=70 and pvz-perm-krasnov reserved=0, available=74. getItem returns the first globally matching batch instead of the selected node."
+    },
+    {
+      "id": "CORE-02",
+      "severity": "P0",
+      "title": "Import accepts negative in-transit stock",
+      "origin": "New V8 incoming stock field is not covered by the new import validator",
+      "location": "state-validation.js: validateState; app-state.js: importState",
+      "reproduction": "Export a fresh manager; set pvz-perm-plus.incoming to [{orderId:'bad',productId:'prod-1',quantity:-10,units:1}]; import the resulting JSON.",
+      "observed": "Import succeeds and summary reports physical=60, inTransit=-10, network=50. Incoming rows, their quantities, units, references, uniqueness, and capacity claims are not validated."
+    },
+    {
+      "id": "CORE-03",
+      "severity": "P0",
+      "title": "Aging a partially reserved batch breaks the stock identity and journal reconciliation",
+      "origin": "New per-batch reservation map interacts incorrectly with the preserved V7 ageInventory mutation",
+      "location": "app-state.js: ageInventory; inventory-engine.js: summary",
+      "reproduction": "Create a fresh manager, create and route a quantity-2 M1 order for prod-1 at pvz-perm-plus, then stepTime(61*24).",
+      "observed": "The batch summary reports P=60, A=0, R=2, Q=60, D=0, so A+R+Q+D=62. ageInventory moves the entire batch into quarantine without releasing or splitting the reservation. reconcile also fails because aging changes stock baskets without an audit event."
+    },
+    {
+      "id": "CORE-04",
+      "severity": "P1",
+      "title": "Dispatch does not revalidate delivery promise or reception window",
+      "origin": "Existing lifecycle validation gap remains after V8 adds routing-time windows",
+      "location": "order-operations.js: processOrderAction dispatch branch; route-engine.js: build",
+      "reproduction": "Remove prod-1 from pvz-perm-krasnov, create a quantity-40 order from pvz-perm-plus to pvz-perm-krasnov with promisedHours=6 at virtual time 10, route to M2, execute receive/store/pack, advance 10 hours, dispatch.",
+      "observed": "Dispatch returns success and in_transit at virtual hour 20, although the reception window has closed and 10 hours have already elapsed against a 6-hour promise. Dispatch only rechecks node-down status and stock/capacity transfer."
+    },
+    {
+      "id": "CORE-05",
+      "severity": "P1",
+      "title": "Routing ignores the product return rate when pricing expected return costs",
+      "origin": "Existing product-specific pricing gap remains in the V8 route integration",
+      "location": "route-engine.js: build calculateOrder call",
+      "reproduction": "Route an M1 order for prod-1. Its product returnRate is 0.08, while the tariff returnRate is 0.12. Compare the route economics with new CostEngine().calculateOrder({route:'M1',returnRate:0.08}).",
+      "observed": "Route cost per unit is 6696 kopecks, whereas the same CostEngine with the actual product return rate returns 6564. build passes prices and commission, but omits returnRate and therefore silently uses the default 12 percent."
+    },
+    {
+      "id": "CORE-06",
+      "severity": "P1",
+      "title": "Routing cannot fulfill an order from multiple available FIFO batches",
+      "origin": "V8 stock validation adds a single-batch restriction that is not part of the required aggregate stock model",
+      "location": "route-engine.js: findCandidates stock lookup; order-operations.js: routeOrder reservation representation",
+      "reproduction": "Use a fresh manager with only two available prod-1 batches of 10 units each at pvz-perm-plus and no stock elsewhere. Create a same-node order for 15 units.",
+      "observed": "Summary shows physical=20 and available=20, but routeOrder reports no available route because each candidate requires a single batch with at least 15 units."
+    }
+  ],
+  "required_fixes": [
+    {"finding": "CORE-01", "fix": "Enforce globally unique internal batch identifiers at receipt and import, or qualify every inventory lookup/mutation by node and batch. Add a two-node duplicate-batch regression."},
+    {"finding": "CORE-02", "fix": "Validate incoming stock, quantity, unit dimensions, product/node/order references, uniqueness, and physical-plus-incoming capacity before any state assignment. Also validate scheduled trips, transfers and ledger collections rather than accepting arbitrary imported shapes."},
+    {"finding": "CORE-03", "fix": "Use one aging implementation. Release/replan affected order reservations or split reserved and quarantined quantities without double counting. Record stock-basket changes through auditEvent and verify reconcile after aging beyond 60 days."},
+    {"finding": "CORE-04", "fix": "Recheck applicable windows, node state, remaining promised time, ETA and capacity at dispatch. If invalid, safely keep or release/replan the reservation and show an explicit exception rather than dispatching successfully."},
+    {"finding": "CORE-05", "fix": "Pass order.returnRate into CostEngine.calculateOrder for all route candidates and verify that baseline and Mesh use the same product-specific risk parameters."},
+    {"finding": "CORE-06", "fix": "Build FIFO allocations across available batches and reserve them atomically; store and transfer the allocation list. If deliberately deferred, explicitly document the single-batch limit rather than calling it aggregate availability."}
+  ],
+  "limitations": [
+    "Review describes the live working tree based on feature/codex-v8 commit e56e0d8 plus ongoing parent changes, not an immutable clean checkout.",
+    "All reproductions were isolated in-memory Node processes; application files and the running localhost server were not modified.",
+    "The parent may have fixed some findings after the probe timestamp; each fix requires a fresh regression run.",
+    "This audit did not inspect every historical legacy module, external service, browser flow, or full supplied technical specification.",
+    "Forecast recommend currently estimates sigma as 1.4826 times MAE rather than a median absolute deviation; this is a visible modeling choice in its formula, not evidence of measured forecast accuracy.",
+    "Storage and seller long-storage rates include embedded constants; a strict single tariff-source requirement needs a separate source-alignment check."
+  ],
+  "uncertain": []
+}

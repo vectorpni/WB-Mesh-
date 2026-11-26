@@ -1,3 +1,4 @@
+import { publicFile } from './src/server-policy.js';
 /**
  * WB Mesh Control System - Static File Server
  * Serves the application for development and demo
@@ -57,72 +58,20 @@ function serveFile(filePath, res) {
   }
 }
 
-const server = createServer((req, res) => {
-  // CORS headers for development
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
+const server = createServer((req,res) => {
+  res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('Cache-Control','no-cache');
+  if(!['GET','HEAD'].includes(req.method)) {
+    res.writeHead(405,{'Allow':'GET, HEAD'});res.end('Method Not Allowed');return;
   }
-
-  // Parse URL
-  let urlPath = new URL(req.url, `http://localhost:${PORT}`).pathname;
-
-  // Default to index.html for root
-  if (urlPath === '/') {
-    urlPath = '/index.html';
-  }
-
-  // Remove leading slash
-  urlPath = urlPath.replace(/^\//, '');
-
-  // Security: prevent directory traversal
-  if (urlPath.includes('..')) {
-    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('403 Forbidden');
-    return;
-  }
-
-  const filePath = join(PUBLIC_DIR, urlPath);
-
-  // Check if file exists
-  if (existsSync(filePath)) {
-    // Check if it's a directory
-    const stats = statSync(filePath);
-    if (stats.isDirectory()) {
-      // Try index.html in directory
-      const indexPath = join(filePath, 'index.html');
-      if (existsSync(indexPath)) {
-        serveFile(indexPath, res);
-      } else {
-        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('403 Forbidden');
-      }
-    } else {
-      serveFile(filePath, res);
-    }
-  } else {
-    // SPA fallback - serve index.html for client-side routing
-    if (!urlPath.includes('.')) {
-      const indexPath = join(PUBLIC_DIR, 'index.html');
-      if (existsSync(indexPath)) {
-        serveFile(indexPath, res);
-      } else {
-        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('404 Not Found');
-      }
-    } else {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('404 Not Found');
-    }
-  }
+  const filePath=publicFile(PUBLIC_DIR,req.url);
+  if(!filePath) {res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});res.end('Forbidden');return;}
+  if(!existsSync(filePath)||!statSync(filePath).isFile()) {res.writeHead(404);res.end('Not Found');return;}
+  if(req.method==='HEAD') {res.writeHead(200,{'Content-Type':getMimeType(filePath)});res.end();return;}
+  serveFile(filePath,res);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`🚀 WB Mesh Control System running at http://localhost:${PORT}`);
   console.log(`📁 Serving from: ${PUBLIC_DIR}`);
   console.log(`⏰ Started at: ${new Date().toISOString()}`);

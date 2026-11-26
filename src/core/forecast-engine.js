@@ -34,9 +34,11 @@ export class DemandForecast {
   }
   static recommend(history,available,inTransit=0,capacity=400) {
     const f=this.forecastNextDay(history),lambda=f.nextDayForecast;
-    const sigma=f.mae*1.4826,target=Math.ceil(lambda*2+1.28*sigma*Math.sqrt(2));
+    const median=values=>{const a=[...values].sort((a,b)=>a-b);return a.length?(a[Math.floor((a.length-1)/2)]+a[Math.ceil((a.length-1)/2)])/2:0;};
+    const recent=history.slice(-14),center=median(recent),sigma=1.4826*median(recent.map(v=>Math.abs(v-center)));
+    const target=Math.ceil(lambda*2+1.28*sigma*Math.sqrt(2));
     const deficit=Math.max(0,target-available-inTransit),surplus=Math.max(0,available-target-3*lambda);
-    return {...f,lambda,target,deficit,surplus,quantity:Math.max(0,Math.min(deficit,capacity-available-inTransit)),
-      expectedDays:lambda?available/lambda:null,formula:'T = ceil(2λ + 1,28 × 1,4826 × MAE × √2); D = max(0,T−A−T_in)'};
+    return {...f,lambda,sigma,target,deficit,surplus,quantity:Math.max(0,Math.min(deficit,capacity-available-inTransit)),
+      expectedDays:lambda?available/lambda:null,formula:'T = ceil(2λ + 1,28 × 1,4826 × MAD × √2); D = max(0,T−A−T_in)'};
   }
 }

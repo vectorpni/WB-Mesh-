@@ -52,6 +52,7 @@ export class InventoryManager {
     if(!InventoryManager.validQuantity(quantity)) return {success:false,error:'Количество должно быть положительным целым'};
     const old=p.inventory?.find(i=>i.batchId===batchId);
     if(old) return old.productId===productId && old.originalQuantity===quantity ? {success:true,replayed:true} : {success:false,error:'Партия уже существует'};
+    if(this.getItem(batchId))return {success:false,error:'Номер партии уже используется в другом узле'};
     const units=options.units || 1;
     const incoming=(p.incoming || []).reduce((a,i)=>a+i.quantity*(i.units || 1),0);
     if(p.occupiedCapacity+incoming+quantity*units>p.capacity) return {success:false,error:'Превышена вместимость ПВЗ'};
@@ -68,28 +69,33 @@ export class InventoryManager {
     f.pvz.occupiedCapacity-=quantity*(f.item.units || 1);
     return {success:true};
   }
-  transfer(fromPvzId,toPvzId,batchId,quantity,orderId=`transfer-${batchId}`) {
+  transfer(fromPvzId,toPvzId,batchId,quantity,orderId=`transfer-${batchId}`,options={}) {
     const f=this.getItem(batchId), to=this.pvzs.get(toPvzId);
     if(!f || f.pvz.id!==fromPvzId || !to || fromPvzId===toPvzId) return {success:false,error:'Некорректное направление'};
     if(to.incoming?.some(i=>i.orderId===orderId)) return {success:true,replayed:true};
     const units=f.item.units || 1;
     const incoming=(to.incoming || []).reduce((a,i)=>a+i.quantity*(i.units || 1),0);
     if(!InventoryManager.validQuantity(quantity) || to.occupiedCapacity+incoming+quantity*units>to.capacity) return {success:false,error:'Превышена вместимость'};
-    if(f.item.reservations?.[orderId]!==quantity) {
-      const result=this.reserve(batchId,quantity,orderId); if(!result.success) return result;
+    const reservationId=options.reservationId || orderId;
+    if(options.withdrawal && f.item.withdrawalRequired && f.item.status==='quarantine' && InventoryManager.reserved(f.item)===0 && f.item.quantity>=quantity){
+      f.item.quantity-=quantity;f.pvz.occupiedCapacity-=quantity*units;
+    }else{
+    if(f.item.reservations?.[reservationId]!==quantity) {
+      const result=this.reserve(batchId,quantity,reservationId); if(!result.success) return result;
     }
-    const result=this.issue(batchId,quantity,orderId); if(!result.success) return result;
+    const result=this.issue(batchId,quantity,reservationId); if(!result.success) return result;
+    }
     to.incoming ||= [];
-    to.incoming.push({orderId,batchId:`transit-${orderId}`,productId:f.item.productId,quantity,units,fromPvzId});
+    to.incoming.push({orderId,batchId:`transit-${orderId}`,productId:f.item.productId,quantity,units,fromPvzId,status:options.withdrawal?'quarantine':'available'});
     return {success:true};
   }
   arrive(pvzId,orderId,time=0) {
     const p=this.pvzs.get(pvzId), i=p?.incoming?.find(i=>i.orderId===orderId);
     if(!i) return {success:false,error:'Груз в пути не найден'};
     p.incoming=p.incoming.filter(x=>x!==i);
-    const r=this.receive(pvzId,i.productId,i.quantity,i.batchId,{units:i.units,time});
+    const r=this.receive(pvzId,i.productId,i.quantity,i.batchId,{units:i.units,time,status:i.status});
     if(!r.success) {p.incoming.push(i);return r;}
-    this.reserve(i.batchId,i.quantity,orderId);
+    if(i.status!=='quarantine')this.reserve(i.batchId,i.quantity,orderId);
     return {success:true,batchId:i.batchId};
   }
   processReturn(pvzId,batchId,quantity,reason,productId,units=1) {
@@ -98,7 +104,7 @@ export class InventoryManager {
   resolveQuarantine(batchId,resolution,inspection={}) {
     const f=this.getItem(batchId);
     if(!f || f.item.status!=='quarantine') return {success:false,error:'Карантин не найден'};
-    if(resolution==='resell' && inspection.fit!==true) return {success:false,error:'Сначала подтвердите пригодность товара'};
+    if(resolution==='resell' && (inspection.fit!==true || f.item.withdrawalRequired)) return {success:false,error:'Нужна пригодность; неликвид направляется на хаб'};
     if(resolution==='resell') f.item.status='available';
     else if(resolution==='damaged') f.item.status='damaged';
     else if(resolution==='writeoff') {f.pvz.occupiedCapacity-=f.item.quantity*(f.item.units || 1);f.item.quantity=0;f.item.status='damaged';}
@@ -107,9 +113,14 @@ export class InventoryManager {
   }
   ageBatches(hours) {
     if(!Number.isFinite(hours) || hours<0) throw new RangeError('Некорректное время');
-    for(const p of this.pvzs.values()) for(const i of p.inventory || []) {
+    for(const p of this.pvzs.values()) for(const i of [...(p.inventory || [])]) {
       i.daysStored=(i.daysStored || 0)+hours/24;
-      if(i.status==='available' && i.daysStored>60) i.withdrawalRequired=true;
+      if(i.status==='available' && i.daysStored>60) {
+        const reserved=InventoryManager.reserved(i),expired=i.quantity-reserved;
+        if(expired<=0)continue;
+        if(reserved){i.quantity=reserved;p.inventory.push({...i,id:`expired-${i.batchId}`,batchId:`expired-${i.batchId}`,quantity:expired,reservations:{},status:'quarantine',withdrawalRequired:true});}
+        else {i.withdrawalRequired=true;i.status='quarantine';}
+      }
     }
   }
 }

@@ -97,7 +97,7 @@ export class ConsolidationEngine {
     const groups = new Map();
 
     for (const order of pending) {
-      const key = `${order.destinationPvzId}-${Math.floor(order.createdAt / timeWindowHours)}`;
+      const key = `${order.sourcePvzId}-${order.destinationPvzId}-${Math.floor(order.createdAt / timeWindowHours)}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(order);
     }
@@ -118,9 +118,11 @@ export class ConsolidationEngine {
    */
   estimateSavings(orders) {
     const totalQty = orders.reduce((sum, o) => sum + o.quantity, 0);
-    const classicCost = orders.reduce((sum, o) => sum + 12000, 0); // 120₽ per order
-    const meshCost = 48000 + 800 * totalQty; // trip cost
-    return Math.max(0, classicCost - meshCost);
+    if(totalQty<1)return 0;
+    const engine=new CostEngine(this.tariffs);
+    const classicCost=engine.calculateClassicCost().total*totalQty;
+    const meshCost=engine.calculateMeshVariableCost().total*totalQty+engine.calculateTripCost(totalQty).total;
+    return classicCost-meshCost;
   }
 }
 
@@ -183,16 +185,11 @@ export class OperationsAudit {
    */
   logDecision(order, candidates, selected, reason) {
     const entry = {
-      id: `log-${Date.now()}`,
+      id: `log-${order.id}-${this.decisionLog.length}`,
       orderId: order.id,
-      timestamp: Date.now(),
-      candidates: candidates.map(c => ({
-        type: c.type,
-        totalCost: c.totalCost,
-        etaHours: c.etaHours,
-        available: c.available,
-        rejectionReasons: c.rejectionReasons
-      })),
+      timestamp: order.currentTime ?? 0,
+      input:{productId:order.productId,quantity:order.quantity,sourcePvzId:order.sourcePvzId,destinationPvzId:order.destinationPvzId,tariffVersion:8},
+      candidates: structuredClone(candidates),
       selectedRoute: selected?.type,
       cost: selected?.totalCost,
       savings: selected?.marketplaceEconomics?.savings,
@@ -206,11 +203,10 @@ export class OperationsAudit {
 
   buildFormulaBreakdown(selected) {
     return {
-      variableCost: selected.totalCost,
-      fixedCostShare: 0,
+      parameters:selected.economics?.parameters,
+      breakdown:selected.economics?.breakdown,
+      trip:selected.economics?.trip,
       pvzPayout: selected.pvzReward,
-      expectedReturns: 0,
-      expectedDamage: 0,
       total: selected.totalCost,
       baseline: selected.marketplaceEconomics.classicCost,
       savings: selected.marketplaceEconomics.savings
@@ -293,7 +289,7 @@ export class MCS {
 
   generateReason(candidates, selected) {
     if (!selected) return 'Нет доступных маршрутов';
-    const byType = candidates.filter(c => c.type === selected.type);
-    return `Выбран ${selected.type}: ${byType.length > 1 ? 'наименьшая стоимость' : 'единственный вариант'}`;
+    const count=candidates.filter(c=>c.available).length;
+    return `Выбран ${selected.type}: минимальная полная стоимость среди ${count} допустимых вариантов; срок ${selected.etaHours} ч`;
   }
 }

@@ -25,7 +25,7 @@ export function demandIndices(state){
  return result;
 }
 export function transportOptions(trips,from,to,quantity,now=10){
- return (trips||[]).filter(t=>t.status==='planned'&&t.departureTime>=now&&t.departureTime-now<=24&&t.nodes.indexOf(from)>=0&&t.nodes.indexOf(to)>t.nodes.indexOf(from)&&t.capacity-t.booked>=quantity)
+ return (trips||[]).map(t=>({...t,departureTime:t.recurring&&t.booked===0&&t.departureTime<now?t.departureTime+Math.ceil((now-t.departureTime)/24)*24:t.departureTime})).filter(t=>t.status==='planned'&&t.departureTime>=now&&t.departureTime-now<=24&&t.nodes.indexOf(from)>=0&&t.nodes.indexOf(to,t.nodes.indexOf(from)+1)>t.nodes.indexOf(from)&&t.capacity-t.booked>=quantity)
  .map(t=>({id:t.id,kind:t.kind,departureTime:t.departureTime,capacity:t.capacity-t.booked,
   cost:t.additionalFixed+t.additionalPerUnit*quantity,perUnit:Math.ceil((t.additionalFixed+t.additionalPerUnit*quantity)/quantity),
   formula:`${t.additionalFixed} + ${t.additionalPerUnit} × ${quantity} коп. Дополнительные обработка, время и отклонение; базовый рейс не считается бесплатной машиной.`}));

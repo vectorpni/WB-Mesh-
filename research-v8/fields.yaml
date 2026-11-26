@@ -1,0 +1,18 @@
+fields:
+  technical_features:
+    - name: item_name
+      description: Audit object
+      detail_level: brief
+    - name: sources_read
+      description: Exact paths actually read
+      detail_level: detailed
+    - name: verified_findings
+      description: Verified findings with evidence and severity; distinguish existing issues and new regressions
+      detail_level: detailed
+    - name: required_fixes
+      description: Concrete required fixes with locations and reproductions
+      detail_level: detailed
+    - name: limitations
+      description: Unverified claims and remaining limitations
+      detail_level: detailed
+uncertain: []

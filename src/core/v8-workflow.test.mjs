@@ -110,3 +110,8 @@ test('Габариты S/M/L занимают 1/3/8 мест',()=>{
  const m=new StateManager(),p=m.state.pvzs.get('pvz-perm-krasnov');
  const before=p.occupiedCapacity;assert.ok(m.receiveSupply(p.id,'prod-2',2,'size-test').success);assert.equal(p.occupiedCapacity,before+6);
 });
+
+test('NPV и ROI считаются из денежных потоков, не копируются из отчёта',()=>{
+ const r=new CostEngine().calculateInvestment({monthlyOrders:1000,unitSavings:100,initialInvestment:1000,nodeInvestment:0,annualDiscount:0,months:1});
+ assert.equal(r.npv,-800);assert.equal(r.roi,-.8);assert.equal(r.payback,null);
+});

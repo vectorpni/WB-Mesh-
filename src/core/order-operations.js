@@ -28,16 +28,17 @@ export const orderOperations = {
     const product=this.state.products.get(order.productId), seller=this.state.sellers.get(order.sellerId);
     Object.assign(order,{price:product.price,purchaseCost:product.purchaseCost ?? Math.round(product.price*.6),
       commissionRate:seller?.commission ?? .15,meshEligible:product.meshEligible!==false,
-      returnRate:product.returnRate,units:product.units || 1,currentTime:this.state.virtualTime.currentTime});
+      returnRate:product.returnRate,units:product.units || 1,currentTime:this.state.virtualTime.currentTime,mcsAvailable:this.state.mcsStatus!=='error'});
     const result=this.mcs.routeOrder(order);order.decision=result;
     this.state.mcsDecisionLog.push(this.mcs.audit.getDecisionLog().at(-1));
     if(!result.selected) {
-      order.routeType='blocked';order.failureReason=result.reason;event(this,order,'route_blocked',{reason:result.reason});this.notify();return fail(result.reason);
+      order.routeType='blocked';order.routeCost=null;order.routeEta=null;delete order.economics;order.failureReason=result.reason;event(this,order,'route_blocked',{reason:result.reason});this.notify();return fail(result.reason);
     }
     const selected=result.selected;
-    const reserved=this.mcs.inventoryManager.reserve(selected.batchId,order.quantity,order.id);
-    if(!reserved.success) return reserved;
-    order.reservation={batchId:selected.batchId,pvzId:selected.sourcePvzId};
+    const batches=selected.batches || [{batchId:selected.batchId,quantity:order.quantity}];
+    const completed=[];
+    for(const b of batches){const r=this.mcs.inventoryManager.reserve(b.batchId,b.quantity,order.id);if(!r.success){for(const prev of completed)this.mcs.inventoryManager.releaseReservation(prev.batchId,prev.quantity,order.id);return r;}completed.push(b);}
+    order.reservation={batchId:selected.batchId,batches,pvzId:selected.sourcePvzId};
     Object.assign(order,{sourcePvzId:selected.sourcePvzId,routeType:selected.type,routeCost:selected.totalCost,
       routeEta:selected.etaHours,classicCost:selected.marketplaceEconomics.classicCost,pvzReward:selected.pvzReward,
       economics:selected.economics});
@@ -60,16 +61,26 @@ export const orderOperations = {
       if(!o.reservation || o.routeType==='blocked') return fail('Нет подтверждённого маршрута и резерва');
       const dest=this.state.pvzs.get(o.destinationPvzId);
       if(dest.status==='down' || this.state.pvzs.get(o.sourcePvzId)?.status==='down') return fail('Узел недоступен: требуется пересчёт маршрута');
+      const elapsed=this.state.virtualTime.currentTime-o.createdAt;
+      if(elapsed+o.routeEta>o.promisedHours)return fail('Обещанный срок недостижим: пересчитайте заказ');
+      const hour=this.state.virtualTime.currentTime%24;
+      if(o.routeType==='M2'&&(hour<9||hour>=18))return fail('Рейс вне окна 09:00–17:00');
       if(o.sourcePvzId!==o.destinationPvzId) {
-        const r=inventory.transfer(o.sourcePvzId,o.destinationPvzId,o.reservation.batchId,o.quantity,o.id);if(!r.success)return r;
+        for(const [i,b]of o.reservation.batches.entries()){
+          const r=inventory.transfer(o.sourcePvzId,o.destinationPvzId,b.batchId,b.quantity,`${o.id}:part:${i}`,{reservationId:o.id});if(!r.success)return r;
+        }
       }
     }
     if(action==='arrive' && o.sourcePvzId!==o.destinationPvzId) {
-      const r=inventory.arrive(o.destinationPvzId,o.id,this.state.virtualTime.currentTime);if(!r.success)return r;
-      o.reservation={batchId:r.batchId,pvzId:o.destinationPvzId};
+      const batches=[];
+      for(const [i,b]of o.reservation.batches.entries()){
+        const key=`${o.id}:part:${i}`,r=inventory.arrive(o.destinationPvzId,key,this.state.virtualTime.currentTime);if(!r.success)return r;
+        batches.push({batchId:r.batchId,quantity:b.quantity,reservationKey:key});
+      }
+      o.reservation={batchId:batches[0].batchId,batches,pvzId:o.destinationPvzId};
     }
-    if(action==='issue') {const r=inventory.issue(o.reservation?.batchId,o.quantity,o.id);if(!r.success)return r;o.reservation=null;}
-    if(action==='cancel' && o.reservation) {inventory.releaseReservation(o.reservation.batchId,o.quantity,o.id);o.reservation=null;}
+    if(action==='issue') {for(const b of o.reservation?.batches || []){const r=inventory.issue(b.batchId,b.quantity,b.reservationKey || o.id);if(!r.success)return r;}o.reservation=null;}
+    if(action==='cancel' && o.reservation) {for(const b of o.reservation.batches)inventory.releaseReservation(b.batchId,b.quantity,b.reservationKey || o.id);o.reservation=null;}
     if(action==='return') {const r=this.processReturn(o);if(!r.success)return r;}
     o.status=next;o.completedActions[action]=true;event(this,o,action,{status:next});
     if(action==='settle')this.recordFinancialSnapshot(o);
