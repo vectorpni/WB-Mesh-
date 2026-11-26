@@ -18,6 +18,10 @@ function createElement(tag, attrs = {}, children = []) {
     else if (key === 'dataset') Object.entries(value).forEach(([k, v]) => el.dataset[k] = v);
     else el.setAttribute(key, value);
   });
+  // Normalize children to array
+  if (!Array.isArray(children)) {
+    children = [children];
+  }
   children.forEach(child => {
     if (typeof child === 'string') el.appendChild(document.createTextNode(child));
     else if (child instanceof Node) el.appendChild(child);
@@ -451,8 +455,8 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
       const c1 = cityArray[i];
       const c2 = cityArray[j];
       svg.appendChild(createElementNS('line', {
-        x1: c1.coordinates.x, y1: c1.coordinates.y,
-        x2: c2.coordinates.x, y2: c2.coordinates.y,
+        x1: c1.coordinates?.x ?? 0, y1: c1.coordinates?.y ?? 0,
+        x2: c2.coordinates?.x ?? 0, y2: c2.coordinates?.y ?? 0,
         stroke: '#D4C8DC', 'stroke-width': 2, 'stroke-dasharray': '8,4', opacity: 0.5
       }));
     }
@@ -463,13 +467,13 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
     const hub = pvzs.get(city.hubId);
     if (!hub) continue;
 
-    for (const meshPvzId of city.meshPvzs) {
+    for (const meshPvzId of (city.meshPvzs || [])) {
       const meshPvz = pvzs.get(meshPvzId);
       if (!meshPvz) continue;
 
       svg.appendChild(createElementNS('line', {
-        x1: hub.coordinates.x, y1: hub.coordinates.y,
-        x2: meshPvz.coordinates.x, y2: meshPvz.coordinates.y,
+        x1: hub.coordinates?.x ?? 0, y1: hub.coordinates?.y ?? 0,
+        x2: meshPvz.coordinates?.x ?? 0, y2: meshPvz.coordinates?.y ?? 0,
         stroke: '#CB11AB', 'stroke-width': 2, opacity: 0.6
       }));
     }
@@ -492,8 +496,8 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
     const strokeWidth = isHighlighted ? 3 : 2;
 
     const circle = createElementNS('circle', {
-      cx: pvz.coordinates.x,
-      cy: pvz.coordinates.y,
+      cx: pvz.coordinates?.x ?? 0,
+      cy: pvz.coordinates?.y ?? 0,
       r: radius,
       fill,
       stroke,
@@ -507,8 +511,8 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
 
     // Label
     const text = createElementNS('text', {
-      x: pvz.coordinates.x,
-      y: pvz.coordinates.y + radius + 14,
+      x: pvz.coordinates?.x ?? 0,
+      y: (pvz.coordinates?.y ?? 0) + radius + 14,
       'text-anchor': 'middle',
       'font-size': '10',
       'font-family': 'Inter, sans-serif',
@@ -525,8 +529,8 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
       const offset = circumference * (1 - load);
 
       svg.appendChild(createElementNS('circle', {
-        cx: pvz.coordinates.x,
-        cy: pvz.coordinates.y,
+        cx: pvz.coordinates?.x ?? 0,
+        cy: pvz.coordinates?.y ?? 0,
         r: indicatorRadius,
         fill: 'none',
         stroke: '#E8E0ED',
@@ -534,15 +538,15 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
       }));
 
       svg.appendChild(createElementNS('circle', {
-        cx: pvz.coordinates.x,
-        cy: pvz.coordinates.y,
+        cx: pvz.coordinates?.x ?? 0,
+        cy: pvz.coordinates?.y ?? 0,
         r: indicatorRadius,
         fill: 'none',
         stroke: load > 0.8 ? '#EF4444' : (load > 0.5 ? '#F59E0B' : '#10B981'),
         'stroke-width': 3,
         'stroke-dasharray': circumference,
         'stroke-dashoffset': offset,
-        transform: `rotate(-90 ${pvz.coordinates.x} ${pvz.coordinates.y})`,
+        transform: `rotate(-90 ${pvz.coordinates?.x ?? 0} ${pvz.coordinates?.y ?? 0})`,
         class: 'capacity-indicator'
       }));
     }

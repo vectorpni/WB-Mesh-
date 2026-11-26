@@ -788,7 +788,7 @@ function renderPvzInventory(pvz, state) {
   inventory.forEach(item => {
     const product = products.get(item.productId);
     const daysStored = state.virtualTime.currentTime / 24 - (item.receivedAt / 24);
-    const storageCost = CostEngine.calculateStorageCost(item.quantity, daysStored, state.tariffs);
+    const storageCost = CostEngine.calculateStorageCost(state.tariffs, daysStored);
 
     const tr = createElement('tr', {}, [
       createElement('td', {}, product?.sku || item.productId.slice(-8)),
@@ -1296,7 +1296,7 @@ function renderUnitEconomics(state) {
 
   // Mesh cost breakdown
   const breakdownContainer = document.getElementById('meshCostBreakdown');
-  const tripCost = CostEngine.calculateTripCost(5, 1, 5, tariffs); // 5 orders, 1 stop, 5 min wait
+  const tripCost = CostEngine.calculateTripCost(tariffs, 5, 1, 5); // 5 orders, 1 stop, 5 min wait
   const fixedShare = Math.round(tariffs.fixedTripCost / 5); // per order at 5 orders
 
   const breakdownRows = [
@@ -1318,10 +1318,10 @@ function renderBreakEvenAnalysis(state) {
   const tariffs = state.tariffs;
 
   const breakEven = CostEngine.calculateBreakEvenThreshold(tariffs);
-  const tripCostBase = CostEngine.calculateTripCost(1, 1, 5, tariffs);
-  const tripCost5 = CostEngine.calculateTripCost(5, 1, 5, tariffs);
-  const tripCost10 = CostEngine.calculateTripCost(10, 1, 5, tariffs);
-  const tripCost20 = CostEngine.calculateTripCost(20, 1, 5, tariffs);
+  const tripCostBase = CostEngine.calculateTripCost(tariffs, 1, 1, 5);
+  const tripCost5 = CostEngine.calculateTripCost(tariffs, 5, 1, 5);
+  const tripCost10 = CostEngine.calculateTripCost(tariffs, 10, 1, 5);
+  const tripCost20 = CostEngine.calculateTripCost(tariffs, 20, 1, 5);
 
   const perOrder1 = tripCostBase;
   const perOrder5 = Math.round(tripCost5 / 5);
@@ -1360,7 +1360,7 @@ function renderSensitivityChart() {
 
   // Calculate costs for different order sizes
   const sizes = Array.from({length: 20}, (_, i) => i + 1);
-  const meshCosts = sizes.map(n => Math.round(CostEngine.calculateTripCost(n, 1, 5, tariffs) / n));
+  const meshCosts = sizes.map(n => Math.round(CostEngine.calculateTripCost(tariffs, n, 1, 5) / n));
   const classicCost = CostEngine.calculateClassicCost(tariffs);
   const classicLine = sizes.map(() => classicCost);
 
@@ -1485,7 +1485,7 @@ function renderScenarioComparison(state) {
 
   tbody.innerHTML = '';
   scenarios.forEach(s => {
-    const tripCost = CostEngine.calculateTripCost(s.orders, s.stops, s.wait || 5, tariffs);
+    const tripCost = CostEngine.calculateTripCost(tariffs, s.orders, s.stops, s.wait || 5);
     const meshPerOrder = Math.round(tripCost / s.orders);
     const savings = classicCost - meshPerOrder;
     const savingsPct = ((savings / classicCost) * 100).toFixed(1);
@@ -2064,14 +2064,14 @@ function renderCitiesTable() {
   tbody.innerHTML = '';
   for (const [id, city] of state.cities) {
     const hub = state.pvzs.get(city.hubId);
-    const meshCount = city.meshPvzs.length;
+    const meshCount = (city.meshPvzs || []).length;
 
     const tr = createElement('tr', {}, [
       createElement('td', { class: 'font-mono' }, id),
       createElement('td', {}, city.name),
       createElement('td', {}, hub?.name || city.hubId),
       createElement('td', {}, meshCount),
-      createElement('td', {}, `(${city.coordinates.x}, ${city.coordinates.y})`),
+      createElement('td', {}, `(${city.coordinates?.x ?? 0}, ${city.coordinates?.y ?? 0})`),
       createElement('td', {}, [
         createElement('button', { class: 'btn btn-ghost btn-icon btn-xs', title: 'Редактировать' }, createElement('span', { innerHTML: svgIcon('settings', 14) })),
         createElement('button', { class: 'btn btn-ghost btn-icon btn-xs text-error', title: 'Удалить' }, createElement('span', { innerHTML: svgIcon('x', 14) }))
@@ -2097,7 +2097,7 @@ function renderPvzsTable() {
         createElement('span', { class: `badge ${pvz.type === 'hub' ? 'badge-primary' : pvz.type === 'mesh' ? 'badge-success' : 'badge-neutral'}` }, pvz.type)
       ]),
       createElement('td', {}, `${pvz.occupiedCapacity}/${pvz.capacity}`),
-      createElement('td', {}, `(${pvz.coordinates.x}, ${pvz.coordinates.y})`),
+      createElement('td', {}, `(${pvz.coordinates?.x ?? 0}, ${pvz.coordinates?.y ?? 0})`),
       createElement('td', {}, pvz.operationalSlots),
       createElement('td', {}, [
         createElement('button', { class: 'btn btn-ghost btn-icon btn-xs' }, createElement('span', { innerHTML: svgIcon('settings', 14) })),

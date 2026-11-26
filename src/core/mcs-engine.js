@@ -60,6 +60,18 @@ export class CostEngine {
   }
 
   /**
+   * Calculate trip cost (static wrapper for direct class calls)
+   * @param {Object} tariffs
+   * @param {number} parcelsCount
+   * @param {number} [stops=1]
+   * @param {number} [waitMinutes=0]
+   * @returns {{total: number, perParcel: number, breakdown: Object}}
+   */
+  static calculateTripCost(tariffs, parcelsCount, stops = 1, waitMinutes = 0) {
+    return new CostEngine(tariffs).calculateTripCost(parcelsCount, stops, waitMinutes);
+  }
+
+  /**
    * Calculate storage cost with progressive tariff
    * @param {number} days
    * @param {number} [baseRate]
@@ -201,6 +213,34 @@ export class CostEngine {
     if (savingsPerParcel <= 0) return Infinity;
 
     return Math.ceil(fixedTotal / savingsPerParcel);
+  }
+
+  // ============================================
+  // STATIC WRAPPERS (for direct CostEngine.method() calls)
+  // ============================================
+
+  static calculateStorageCost(tariffs, days, baseRate) {
+    return new CostEngine(tariffs).calculateStorageCost(days, baseRate);
+  }
+
+  static calculatePvzPayout(tariffs, storageDays) {
+    return new CostEngine(tariffs).calculatePvzPayout(storageDays);
+  }
+
+  static calculatePvzCost(tariffs, storageDays) {
+    return new CostEngine(tariffs).calculatePvzCost(storageDays);
+  }
+
+  static calculateClassicCost(tariffs) {
+    return new CostEngine(tariffs).calculateClassicCost();
+  }
+
+  static calculateMeshVariableCost(tariffs) {
+    return new CostEngine(tariffs).calculateMeshVariableCost();
+  }
+
+  static calculateBreakEvenThreshold(tariffs, stops = 1, waitMinutes = 5) {
+    return new CostEngine(tariffs).calculateBreakEvenThreshold(stops, waitMinutes);
   }
 }
 

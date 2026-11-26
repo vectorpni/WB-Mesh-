@@ -18,6 +18,7 @@
   ],
   "author": "WB Mesh Team",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "playwright": "^1.65.1"
+  }
 }

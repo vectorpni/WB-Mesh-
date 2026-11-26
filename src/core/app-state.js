@@ -39,7 +39,27 @@ class StateManager {
     });
     /** @type {number|null} */
     this.virtualTimeTimer = null;
-    this.startVirtualClock();
+    /** @type {boolean} */
+    this._initialized = false;
+  }
+
+  /**
+   * Get StateManager singleton instance
+   * @returns {StateManager}
+   */
+  static getInstance() {
+    if (!StateManager._instance) {
+      StateManager._instance = new StateManager();
+    }
+    return StateManager._instance;
+  }
+
+  /**
+   * Async initialization (for compatibility with main.js)
+   * @returns {Promise<void>}
+   */
+  async initialize() {
+    this.notify();
   }
 
   /**
