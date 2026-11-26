@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Mesh — Vector PNI</title>
+  <link rel="stylesheet" href="src/ui/design-system.css">
+  <link rel="stylesheet" href="src/ui/v8.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icons/favicon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="preload" href="assets/fonts/GolosText.ttf" as="font" type="font/ttf" crossorigin>
+  <meta name="theme-color" content="#CB11AB">
+  <meta name="description" content="WB Mesh — исследовательский MVP команды Vector PNI. Экономика и управление распределённой логистикой.">
+      </head>
+<body>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <div class="app">
+    <!-- HEADER -->
+    <header class="header" id="header">
+      <div class="header-left">
+        <button class="btn btn-ghost btn-icon sidebar-toggle" id="sidebarToggle" aria-label="Открыть навигацию">
+          <span class="icon-menu"></span>
+        </button>
+        <div class="logo" id="logo">
+          <span class="logo-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span>
+          <span class="logo-text">WB Mesh</span>
+          <span class="logo-badge">Управление сетью</span>
+        </div>
+        <div class="header-divider"></div>
+        <nav class="header-tabs" id="headerTabs" role="tablist">
+          <button class="tab active" role="tab" data-tab="dashboard" aria-selected="true">Обзор</button>
+          <button class="tab" role="tab" data-tab="pvz" aria-selected="false">ПВЗ Рабочее место</button>
+          <button class="tab" role="tab" data-tab="seller" aria-selected="false">Кабинет продавца</button>
+          <button class="tab" role="tab" data-tab="mcs" aria-selected="false">MCS Сеть</button>
+          <button class="tab" role="tab" data-tab="economics" aria-selected="false">Эконом. модель</button>
+          <button class="tab" role="tab" data-tab="demo" aria-selected="false">Демо</button>
+        </nav>
+      </div>
+
+      <div class="header-center">
+        <div class="city-selector">
+          <label class="sr-only" for="citySelect">Город</label>
+          <select id="citySelect" class="form-select form-select-sm">
+            <option value="">Все города</option>
+          </select>
+        </div>
+        <div class="pvz-selector">
+          <label class="sr-only" for="pvzSelect">ПВЗ</label>
+          <select id="pvzSelect" class="form-select form-select-sm">
+            <option value="">Все ПВЗ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="role-switcher">
+          <label class="sr-only" for="roleSelect">Роль</label>
+          <select id="roleSelect" class="form-select form-select-sm">
+            <option value="pvz_owner">👑 Владелец</option>
+            <option value="pvz_operator">📦 Оператор ПВЗ</option>
+            <option value="seller">🏪 Продавец</option>
+            <option value="mcs_dispatcher">🚚 Диспетчер MCS</option>
+            <option value="analyst">📊 Аналитик</option>
+            <option value="jury">⚖️ Жюри</option>
+          </select>
+        </div>
+        <div class="virtual-time">
+          <div class="time-display" id="timeDisplay">День 0, 00:00</div>
+          <div class="time-controls">
+            <button class="btn btn-ghost btn-icon btn-sm" id="timePause" aria-label="Пауза"><span class="icon-pause"></span></button>
+            <button class="btn btn-ghost btn-icon btn-sm" id="timePlay" aria-label="Воспроизвести"><span class="icon-play"></span></button>
+            <button class="btn btn-ghost btn-icon btn-sm" id="timeStep" aria-label="Шаг"><span class="icon-step-forward"></span></button>
+            <input type="range" id="timeSpeed" min="0" max="100" value="1" class="speed-slider" aria-label="Скорость">
+            <span class="speed-label" id="speedLabel">1×</span>
+          </div>
+        </div>
+        <div class="mcs-status" id="mcsStatus">
+          <span class="status-indicator"></span>
+          <span class="status-text">MCS: Готов</span>
+        </div>
+        <button class="btn btn-danger btn-sm demo-reset" id="demoReset">
+          <span class="icon-refresh"></span> Сброс демо
+        </button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Основная навигация">
+      <nav class="sidebar-nav">
+        <ul class="sidebar-list">
+          <li class="sidebar-section">Главное</li>
+          <li><a href="#dashboard" class="sidebar-link active" data-tab="dashboard"><span class="icon-home"></span><span>Обзор</span></a></li>
+          <li class="sidebar-section">Операции</li>
+          <li><a href="#pvz" class="sidebar-link" data-tab="pvz"><span class="icon-building"></span><span>ПВЗ Рабочее место</span></a></li>
+          <li><a href="#seller" class="sidebar-link" data-tab="seller"><span class="icon-user"></span><span>Кабинет продавца</span></a></li>
+          <li><a href="#mcs" class="sidebar-link" data-tab="mcs"><span class="icon-truck"></span><span>MCS Сеть</span></a></li>
+          <li class="sidebar-section">Аналитика</li>
+          <li><a href="#economics" class="sidebar-link" data-tab="economics"><span class="icon-chart"></span><span>Экономическая модель</span></a></li>
+          <li><a href="#demo" class="sidebar-link" data-tab="demo"><span class="icon-play"></span><span>Демо-сценарии</span></a></li>
+          <li class="sidebar-section">Настройки</li>
+          <li><a href="#settings" class="sidebar-link" data-tab="settings"><span class="icon-settings"></span><span>Тарифы и конфиг</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="version-info">WB Mesh V8.0</div>
+        <div class="build-info">Vector PNI · ТОП ИИ СТАРТ</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main" id="main" role="main">
+      <!-- DASHBOARD TAB -->
+      <section class="tab-panel active" id="panel-dashboard" role="region" aria-label="Обзор">
+        <div class="page-header">
+          <h1 class="page-title">Обзор системы</h1>
+          <p class="page-subtitle">Ключевые метрики Mesh-логистики в реальном времени</p>
+        </div>
+
+        <!-- BRANDED DASHBOARD BANNER -->
+        <div class="dashboard-banner" id="dashboardBanner"></div>
+
+        <div class="kpi-grid" id="kpiGrid">
+          <!-- KPI cards rendered here -->
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="card" id="ordersChartCard">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Заказы за последние 14 дней</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="ordersChart" height="200"></canvas>
+            </div>
+          </div>
+
+          <div class="card" id="revenueChartCard">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Экономия Mesh vs Classic</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="revenueChart" height="200"></canvas>
+            </div>
+          </div>
+
+          <div class="card" id="pvzLoadCard">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Загрузка ПВЗ</h3>
+            </div>
+            <div class="card-body">
+              <div id="pvzLoadList"></div>
+            </div>
+          </div>
+
+          <div class="card" id="routeBreakdownCard">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Распределение по типам маршрутов</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="routeChart" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="recentOrdersCard">
+          <div class="card-header flex justify-between">
+            <h3 class="font-semibold text-primary">Последние заказы</h3>
+            <button class="btn btn-ghost btn-sm" id="viewAllOrders">Все заказы</button>
+          </div>
+          <div class="card-body">
+            <div id="recentOrdersList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PVZ WORKSPACE TAB -->
+      <section class="tab-panel" id="panel-pvz" role="region" aria-label="Рабочее место ПВЗ">
+        <div class="page-header">
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="page-title">Рабочее место ПВЗ</h1>
+              <p class="page-subtitle">Приёмка, хранение, сборка, выдача, возврат</p>
+            </div>
+            <div class="pvz-capacity-badge" id="pvzCapacityBadge" style="display: none;">
+              <span class="badge badge-neutral" id="pvzCapacityText">Загрузка: —</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pvz-toolbar">
+          <div class="toolbar-group">
+            <label class="form-label">ПВЗ</label>
+            <select id="pvzWorkPvzSelect" class="form-select form-select-sm" style="min-width: 240px;"></select>
+          </div>
+          <div class="toolbar-group toolbar-actions">
+            <button class="btn btn-primary" id="btnReceive">📥 Приёмка</button>
+            <button class="btn btn-secondary" id="btnStore">📦 На хранение</button>
+            <button class="btn btn-secondary" id="btnPack">📋 Сборка</button>
+            <button class="btn btn-primary" id="btnDispatch">🚚 Отправить</button>
+            <button class="btn btn-success" id="btnIssue">✅ Выдать</button>
+            <button class="btn btn-warning" id="btnReturn">🔄 Возврат</button>
+          </div>
+        </div>
+
+        <div class="pvz-grid">
+          <div class="card" id="pvzInventoryCard">
+            <div class="card-header flex justify-between items-center">
+              <div>
+                <h3 class="font-semibold text-primary">Инвентарь ПВЗ</h3>
+                <p class="text-xs text-tertiary mt-1">Партии товаров на складе и их статус</p>
+              </div>
+              <div class="flex gap-2">
+                <span class="badge badge-info" id="pvzFreeSlots">Свободно: 0</span>
+                <span class="badge badge-warning" id="pvzOccupied">Занято: 0</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="overflow-x-auto">
+                <table class="table" id="pvzInventoryTable">
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th>Товар</th>
+                      <th>Партия</th>
+                      <th>Дней на skladе</th>
+                      <th>Статус</th>
+                      <th class="text-numeric">Хранение / день</th>
+                      <th class="text-numeric">Всего хранение</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pvzInventoryBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="pvzOrdersCard">
+            <div class="card-header flex justify-between items-center">
+              <div>
+                <h3 class="font-semibold text-primary">Заказы на этом ПВЗ</h3>
+                <p class="text-xs text-tertiary mt-1">Жизненный цикл заказов: приёмка → выдача</p>
+              </div>
+              <select id="pvzOrderFilter" class="form-select form-select-sm" style="width: auto;">
+                <option value="">Все статусы</option>
+                <option value="received">Принят</option>
+                <option value="stored">На хранении</option>
+                <option value="ordered">Оформлен</option>
+                <option value="packed">Собран</option>
+                <option value="dispatched">Отправлен</option>
+                <option value="in_transit">В пути</option>
+                <option value="issued">Выдан</option>
+                <option value="settled">Начислено</option>
+                <option value="returned">Возвращён</option>
+              </select>
+            </div>
+            <div class="card-body">
+              <div id="pvzOrdersList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="pvzFinanceCard">
+          <div class="card-header">
+            <h3 class="font-semibold text-primary">Финансовый срез ПВЗ</h3>
+          </div>
+          <div class="card-body">
+            <div id="pvzFinanceContent"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SELLER CABINET TAB -->
+      <section class="tab-panel" id="panel-seller" role="region" aria-label="Кабинет продавца">
+        <div class="page-header">
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="page-title">Кабинет продавца</h1>
+              <p class="page-subtitle">Управление товарами, поставки, аналитика продаж</p>
+            </div>
+            <div class="seller-info-badge" id="sellerInfoBadge" style="display: none;">
+              <span class="badge badge-neutral" id="sellerInfoText">Продавец: —</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="seller-toolbar">
+          <div class="toolbar-group">
+            <label class="form-label">Продавец</label>
+            <select id="sellerSelect" class="form-select form-select-sm" style="min-width: 260px;"></select>
+          </div>
+          <div class="toolbar-group toolbar-actions">
+            <button class="btn btn-primary" id="btnAddProduct">➕ Добавить товар</button>
+            <button class="btn btn-secondary" id="btnCreateSupply">📦 Создать поставку</button>
+          </div>
+        </div>
+
+        <div class="seller-tabs">
+          <button class="seller-tab active" data-seller-tab="products">📦 Товары</button>
+          <button class="seller-tab" data-seller-tab="supplies">🚛 Поставки</button>
+          <button class="seller-tab" data-seller-tab="analytics">📊 Аналитика</button>
+          <button class="seller-tab" data-seller-tab="forecast">🔮 Прогноз</button>
+        </div>
+
+        <div class="seller-tab-panels">
+          <div class="seller-tab-panel active" id="sellerProductsPanel">
+            <div class="card">
+              <div class="card-header flex justify-between items-center">
+                <div>
+                  <h3 class="font-semibold text-primary">Товары в ассортименте</h3>
+                  <p class="text-xs text-tertiary mt-1">Остатки, в пути, продажи в день, дни до дефицита</p>
+                </div>
+                <button class="btn btn-ghost btn-sm" id="btnRefreshProducts">Обновить</button>
+              </div>
+              <div class="card-body">
+                <div class="overflow-x-auto">
+                  <table class="table" id="sellerProductsTable">
+                    <thead>
+                      <tr>
+                        <th>SKU</th>
+                        <th>Название</th>
+                        <th>Категория</th>
+                        <th class="text-numeric">Цена</th>
+                        <th class="text-numeric">На складе</th>
+                        <th class="text-numeric">В пути</th>
+                        <th class="text-numeric">Продаж/день</th>
+                        <th class="text-numeric">Дней остаток</th>
+                        <th>Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sellerProductsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="seller-tab-panel" id="sellerSuppliesPanel">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="font-semibold text-primary">Поставки</h3>
+              </div>
+              <div class="card-body">
+                <div id="sellerSuppliesList"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="seller-tab-panel" id="sellerAnalyticsPanel">
+            <div class="kpi-grid" id="sellerKpiGrid"></div>
+            <div class="card mt-4">
+              <div class="card-header">
+                <h3 class="font-semibold text-primary">Продажи по дням</h3>
+              </div>
+              <div class="card-body"><canvas id="sellerSalesChart" height="200"></canvas></div>
+            </div>
+          </div>
+
+          <div class="seller-tab-panel" id="sellerForecastPanel">
+            <div id="sellerForecastContent"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MCS NETWORK TAB -->
+      <section class="tab-panel" id="panel-mcs" role="region" aria-label="Сеть MCS">
+        <div class="page-header">
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="page-title">MCS Сеть — Визуализация</h1>
+              <p class="page-subtitle">Интерактивная карта маршрутов: Пермь, Екатеринбург, Казань</p>
+            </div>
+            <div class="mcs-network-badge" id="mcsNetworkBadge" style="display: none;">
+              <span class="badge badge-neutral" id="mcsNetworkText">ПВЗ: 0 • Маршрутов: 0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mcs-toolbar">
+          <div class="toolbar-group">
+            <label class="form-label">Город</label>
+            <select id="mcsCitySelect" class="form-select form-select-sm" style="min-width: 180px;">
+              <option value="">Все города</option>
+            </select>
+          </div>
+          <div class="toolbar-group toolbar-filters">
+            <label class="toggle">
+              <input type="checkbox" id="mcsShowLoad" checked>
+              <span class="toggle-slider"></span>
+              Загрузка ПВЗ
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="mcsShowRoutes" checked>
+              <span class="toggle-slider"></span>
+              Активные маршруты
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="mcsShowTrunk">
+              <span class="toggle-slider"></span>
+              Магистрали
+            </label>
+          </div>
+        </div>
+
+        <div class="mcs-grid">
+          <div class="card" style="flex: 1; min-width: 0;">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Сеть MCS</h3>
+            </div>
+            <div class="card-body" style="padding: 0; height: 500px;">
+              <div id="networkCanvas" style="width: 100%; height: 100%;"></div>
+            </div>
+          </div>
+
+          <div class="card" style="width: 350px; flex-shrink: 0;">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Детали маршрута</h3>
+            </div>
+            <div class="card-body">
+              <div id="routeDetailContent">
+                <div class="text-center py-8 text-tertiary">
+                  <span class="icon-truck" style="font-size: 48px; opacity: 0.3;"></span>
+                  <p class="mt-2">Выберите маршрут на карте</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4" id="decisionLogCard">
+          <div class="card-header flex justify-between">
+            <h3 class="font-semibold text-primary">Журнал решений MCS</h3>
+            <button class="btn btn-ghost btn-sm" id="clearLog">Очистить</button>
+          </div>
+          <div class="card-body">
+            <div id="decisionLogList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ECONOMICS MODEL TAB -->
+      <section class="tab-panel" id="panel-economics" role="region" aria-label="Экономическая модель">
+        <div class="page-header">
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="page-title">Экономическая модель</h1>
+              <p class="page-subtitle">Симулятор unit-экономики: Classic vs Mesh, точки безубыточности, чувствительность</p>
+            </div>
+            <div class="economy-summary" id="economySummary" style="display: none;">
+              <span class="badge badge-success" id="economySavings">Экономия: —</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="economics-grid">
+          <div class="card" id="tariffEditorCard">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Параметры тарифов</h3>
+              <p class="text-xs text-tertiary mt-1">Настройте экономику в реальном времени — графики перестроятся автоматически</p>
+            </div>
+            <div class="card-body" id="tariffEditor"></div>
+          </div>
+
+          <div class="card" id="unitEconomicsCard" style="flex: 1;">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Unit-экономика (на заказ)</h3>
+            </div>
+            <div class="card-body">
+              <div class="kpi-grid" id="unitEconomicsKpi"></div>
+              <div class="divider my-4"></div>
+              <h4 class="font-medium text-secondary mb-3">Разбор стоимости Mesh-маршрута</h4>
+              <div id="meshCostBreakdown"></div>
+              <div class="divider my-4"></div>
+              <h4 class="font-medium text-secondary mb-3">Точка безубыточности рейса</h4>
+              <div id="breakEvenAnalysis"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4" id="sensitivityCard">
+          <div class="card-header">
+            <h3 class="font-semibold text-primary">Анализ чувствительности</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Размер заказа (шт)</label>
+                <div class="flex items-center gap-2">
+                  <input type="range" id="sensOrderSize" class="form-range" min="1" max="50" value="5">
+                  <span id="sensOrderSizeVal">5</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Расстояние (км)</label>
+                <div class="flex items-center gap-2">
+                  <input type="range" id="sensDistance" class="form-range" min="10" max="500" value="100">
+                  <span id="sensDistanceVal">100</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Загрузка транспорта (%)</label>
+                <div class="flex items-center gap-2">
+                  <input type="range" id="sensLoad" class="form-range" min="10" max="100" value="80">
+                  <span id="sensLoadVal">80</span>
+                </div>
+              </div>
+            </div>
+            <canvas id="sensitivityChart" height="300"></canvas>
+          </div>
+
+          <div class="card mt-4" id="scenarioComparisonCard">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Сравнение сценариев</h3>
+            </div>
+            <div class="card-body">
+              <div class="overflow-x-auto">
+                <table class="table" id="scenarioTable">
+                  <thead>
+                    <tr>
+                      <th>Сценарий</th>
+                      <th class="text-numeric">Classic (₽)</th>
+                      <th class="text-numeric">Mesh (₽)</th>
+                      <th class="text-numeric">Экономия (₽)</th>
+                      <th class="text-numeric">Экономия (%)</th>
+                      <th class="text-numeric">Break-even (шт)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="scenarioTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      <!-- DEMO TAB -->
+      <section class="tab-panel" id="panel-demo" role="region" aria-label="Демонстрация">
+        <div class="page-header">
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="page-title">Демо-панель для жюри</h1>
+              <p class="page-subtitle">5 обязательных сценариев: городской заказ, межгород, возврат, сбой, долгое хранение</p>
+            </div>
+            <div class="demo-status-badge" id="demoStatusBadge" style="display: none;">
+              <span class="badge badge-neutral" id="demoStatusText">Готов к запуску</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-grid">
+          <div class="card" id="demoScenariosCard">
+            <div class="card-header">
+              <h3 class="font-semibold text-primary">Сценарии демонстрации</h3>
+              <p class="text-xs text-tertiary mt-1">Выберите сценарий и нажмите "Запустить" для интерактивной демонстрации</p>
+            </div>
+            <div class="card-body" id="demoScenariosList"></div>
+          </div>
+
+          <div class="card" id="demoLiveCard" style="flex: 1;">
+            <div class="card-header flex justify-between items-center">
+              <div>
+                <h3 class="font-semibold text-primary">Live-демонстрация</h3>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-secondary btn-sm" id="demoPause">⏸ Пауза</button>
+                <button class="btn btn-primary btn-sm" id="demoStep">⏭ Шаг</button>
+                <button class="btn btn-danger btn-sm" id="demoStop">⏹ Стоп</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="demoLiveContent">
+                <div class="text-center py-8 text-tertiary">
+                  <span class="icon-play" style="font-size: 48px; opacity: 0.3;"></span>
+                  <p class="mt-2">Выберите сценарий слева для запуска демонстрации</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4" id="demoScriptCard">
+          <div class="card-header">
+            <h3 class="font-semibold text-primary">Скрипт демо (3-5 мин)</h3>
+          </div>
+          <div class="card-body" id="demoScriptContent"></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS TAB -->
+      <section class="tab-panel" id="panel-settings" role="region" aria-label="Настройки">
+        <div class="page-header">
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="page-title">Настройки</h1>
+              <p class="page-subtitle">Конфигурация городов, ПВЗ, товаров, продавцов, тарифов</p>
+            </div>
+            <div class="settings-summary-badge" id="settingsSummaryBadge" style="display: none;">
+              <span class="badge badge-neutral" id="settingsSummaryText">Готово к настройке</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-tabs">
+          <button class="settings-tab active" data-settings-tab="cities">🏙 Города</button>
+          <button class="settings-tab" data-settings-tab="pvzs">🏪 ПВЗ</button>
+          <button class="settings-tab" data-settings-tab="products">📦 Товары</button>
+          <button class="settings-tab" data-settings-tab="sellers">🏪 Продавцы</button>
+          <button class="settings-tab" data-settings-tab="tariffs">💰 Тарифы</button>
+          <button class="settings-tab" data-settings-tab="export">💾 Экспорт/Импорт</button>
+        </div>
+
+        <div class="settings-panels">
+          <div class="settings-panel active" id="settingsCities">
+            <div class="card">
+              <div class="card-header flex justify-between">
+                <h3 class="font-semibold text-primary">Города и хабы</h3>
+                <button class="btn btn-primary btn-sm" id="addCity">+ Добавить город</button>
+              </div>
+              <div class="card-body">
+                <div class="overflow-x-auto">
+                  <table class="table" id="citiesTable">
+                    <thead>
+                      <tr><th>ID</th><th>Название</th><th>Хаб ПВЗ</th><th>Mesh ПВЗ</th><th>Координаты</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody id="citiesTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="settingsPvzs">
+            <div class="card">
+              <div class="card-header flex justify-between">
+                <h3 class="font-semibold text-primary">ПВЗ</h3>
+                <button class="btn btn-primary btn-sm" id="addPvz">+ Добавить ПВЗ</button>
+              </div>
+              <div class="card-body">
+                <div class="overflow-x-auto">
+                  <table class="table" id="pvzsTable">
+                    <thead>
+                      <tr><th>ID</th><th>Название</th><th>Город</th><th>Тип</th><th>Вместимость</th><th>Координаты</th><th>Слоты</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody id="pvzsTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="settingsProducts">
+            <div class="card">
+              <div class="card-header flex justify-between">
+                <h3 class="font-semibold text-primary">Товары</h3>
+                <button class="btn btn-primary btn-sm" id="addProduct">+ Добавить товар</button>
+              </div>
+              <div class="card-body">
+                <div class="overflow-x-auto">
+                  <table class="table" id="productsTable">
+                    <thead>
+                      <tr><th>ID</th><th>SKU</th><th>Название</th><th>Категория</th><th>Цена</th><th>Размер</th><th>Вес</th><th>Возвратность</th><th>Продавец</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody id="productsTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="settingsSellers">
+            <div class="card">
+              <div class="card-header flex justify-between">
+                <h3 class="font-semibold text-primary">Продавцы</h3>
+                <button class="btn btn-primary btn-sm" id="addSeller">+ Добавить продавца</button>
+              </div>
+              <div class="card-body">
+                <div class="overflow-x-auto">
+                  <table class="table" id="sellersTable">
+                    <thead>
+                      <tr><th>ID</th><th>Название</th><th>Категория</th><th>Комиссия</th><th>Товары</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody id="sellersTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="settingsTariffs">
+            <div id="tariffEditorSettings"></div>
+          </div>
+
+          <div class="settings-panel" id="settingsExport">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="font-semibold text-primary">Экспорт / Импорт состояния</h3>
+              </div>
+              <div class="card-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 class="font-medium mb-3">Экспорт</h4>
+                    <p class="text-tertiary text-sm mb-3">Скачать полное состояние системы (заказы, инвентарь, финансы, история)</p>
+                    <button class="btn btn-primary" id="exportState">📥 Экспорт JSON</button>
+                  </div>
+                  <div>
+                    <h4 class="font-medium mb-3">Импорт</h4>
+                    <p class="text-tertiary text-sm mb-3">Загрузить ранее сохранённое состояние</p>
+                    <input type="file" id="importFile" accept=".json" class="form-input mb-3" style="display: none;">
+                    <button class="btn btn-secondary" id="importState">📤 Импорт JSON</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <!-- MODALS -->
+    <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal" id="modal">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle"></h3>
+          <button class="btn btn-ghost btn-icon modal-close" id="modalClose" aria-label="Закрыть"><span class="icon-x"></span></button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer" id="modalFooter"></div>
+      </div>
+    </div>
+
+    <!-- DRAWER -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <div class="drawer-header">
+        <h3 class="drawer-title" id="drawerTitle"></h3>
+        <button class="btn btn-ghost btn-icon drawer-close" id="drawerClose" aria-label="Закрыть"><span class="icon-x"></span></button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
+    </div>
+  </div>
+
+  <script type="module" src="src/ui/main.js"></script>
+</body>
+</html>
