@@ -35,6 +35,7 @@ async function navigate(page,tab){
      assert.ok(layout.document<=layout.width+2,`${name}/${width}/${tab} page overflow ${layout.document}`);
      const header=await p.locator('header').boundingBox();
      assert.ok(header.x>=0&&header.x+header.width<=width+2,`${name}/${width}: header clipped`);
+     if(tab==='dashboard')assert.equal(await p.locator('.v-hero h1').evaluate(e=>getComputedStyle(e).color),'rgb(32, 26, 41)','Hero title must contrast with white background');
      const screenshot=`evidence/browser/${name}-${width}x${height}-${tab}.png`;
      await p.screenshot({path:screenshot,fullPage:true});row.layouts.push({width,height,tab,screenshot,status:'pass'});
     }

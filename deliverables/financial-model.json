@@ -1,0 +1,1327 @@
+{
+  "tariffs": {
+    "schemaVersion": 8,
+    "fixedTripCost": 48000,
+    "variablePerParcel": 800,
+    "extraStopCost": 4000,
+    "courierWaitPerMin": 600,
+    "receiveFee": 200,
+    "storagePerDay": 100,
+    "packFee": 100,
+    "transferFee": 0,
+    "pvzBonus": 100,
+    "partnerOpsCost": 300,
+    "partnerShelfPerDay": 35,
+    "partnerRiskCost": 100,
+    "meshReturnCost": 3300,
+    "hubReturnCost": 4500,
+    "damageCost": 40000,
+    "returnInspection": 800,
+    "localRestockCost": 500,
+    "returnRate": 0.12,
+    "resaleShare": 0.5,
+    "classicLossRate": 0.004,
+    "meshLossRate": 0.005,
+    "classicTransport": 2400,
+    "classicStorage": 1200,
+    "hubStoragePerDay": 120,
+    "classicSorting": 1400,
+    "classicLastMile": 2400,
+    "classicPVZ": 1300,
+    "classicReturns": 700,
+    "classicIT": 600,
+    "meshPlacement": 2200,
+    "meshStorage": 1300,
+    "meshSorting": 1000,
+    "meshLocalSorting": 400,
+    "meshLastMile": 0,
+    "meshPVZ": 1400,
+    "meshReturns": 596,
+    "meshIT": 800,
+    "sellerClassicFee": 11200,
+    "sellerMeshFee": 10900,
+    "intercitySurcharge": 2800,
+    "intercityKazanSurcharge": 3400,
+    "minimumSavings": 100,
+    "maxStorageDays": 60,
+    "freeStorageDays": 14,
+    "sellerClassicStorage": 140,
+    "sellerMeshStorageMid": 180,
+    "sellerMeshStorageLate": 300,
+    "storageMidMultiplier": 1.5,
+    "storageLateMultiplier": 2.5,
+    "fastAssemblyBonus": 200,
+    "noWaitBonus": 100,
+    "latePenaltyBase": 1000,
+    "latePenaltyPerMinute": 200,
+    "latePenaltyMax": 6000,
+    "assemblySlaMinutes": 60,
+    "courierMaxWaitMinutes": 10,
+    "normalOperationsPerHour": 20,
+    "peakOperationsPerHour": 5,
+    "progressiveStorageMultiplier": 1.5,
+    "pvzCapacity": 400,
+    "vehicleCapacity": 80,
+    "operationalSlots": 20,
+    "meshHours": 6,
+    "hubHours": 40,
+    "slaHours": 60
+  },
+  "control": {
+    "route": "M2",
+    "total": 9296,
+    "breakdown": {
+      "placement": 2200,
+      "storage": 1300,
+      "sorting": 1000,
+      "lastMile": 2000,
+      "pvz": 1400,
+      "returns": 596,
+      "it": 800
+    },
+    "classic": {
+      "total": 10000,
+      "breakdown": {
+        "transport": 2400,
+        "storage": 1200,
+        "sorting": 1400,
+        "lastMile": 2400,
+        "pvz": 1300,
+        "returns": 700,
+        "it": 600
+      }
+    },
+    "trip": {
+      "total": 80000,
+      "perParcel": 2000,
+      "breakdown": {
+        "fixed": 48000,
+        "variable": 32000,
+        "extraStops": 0,
+        "wait": 0,
+        "parcels": 40,
+        "stops": 1,
+        "waitMinutes": 0
+      },
+      "formula": "48000 + 800 × 40 + 4000 × (1 − 1) + 600 × 0"
+    },
+    "savings": 704,
+    "days": 10,
+    "batchSize": 40,
+    "etaHours": 6,
+    "parameters": {
+      "route": "M2",
+      "baselineRoute": "C1",
+      "batchSize": 40,
+      "days": 10,
+      "stops": 1,
+      "waitMinutes": 0,
+      "returnRate": 0.12,
+      "resaleShare": 0.5,
+      "price": 100000,
+      "purchaseCost": 60000,
+      "commissionRate": 0.15,
+      "promisedHours": 60
+    },
+    "formula": "Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)",
+    "wb": {
+      "cost": 9296,
+      "revenue": 10900,
+      "margin": 1604,
+      "baselineMargin": 1200
+    },
+    "pvz": {
+      "ordinaryReward": 1300,
+      "revenue": 1400,
+      "cost": 750,
+      "result": 650
+    },
+    "seller": {
+      "price": 100000,
+      "purchaseCost": 60000,
+      "commission": 15000,
+      "classicFee": 11200,
+      "fee": 10900,
+      "before": 13800,
+      "after": 14100
+    },
+    "buyer": {
+      "price": 100000,
+      "delivery": 0,
+      "baselineDelivery": 0,
+      "promisedHours": 60,
+      "etaHours": 6
+    },
+    "guards": {
+      "wb": true,
+      "pvz": true,
+      "seller": true,
+      "buyer": true
+    }
+  },
+  "investment": {
+    "npv": 210847205618,
+    "roi": 7.042496,
+    "payback": 12,
+    "benefits": 361912320000,
+    "costs": 45000000000,
+    "cashflows": [
+      {
+        "month": 1,
+        "share": 0.002,
+        "orders": 160000,
+        "gross": 112640000,
+        "opex": 0,
+        "capex": 240000000,
+        "cash": -127360000,
+        "balance": -9127360000
+      },
+      {
+        "month": 2,
+        "share": 0.002,
+        "orders": 160000,
+        "gross": 112640000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 112640000,
+        "balance": -9014720000
+      },
+      {
+        "month": 3,
+        "share": 0.002,
+        "orders": 160000,
+        "gross": 112640000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 112640000,
+        "balance": -8902080000
+      },
+      {
+        "month": 4,
+        "share": 0.02,
+        "orders": 1600000,
+        "gross": 1126400000,
+        "opex": 0,
+        "capex": 2160000000,
+        "cash": -1033600000,
+        "balance": -9935680000
+      },
+      {
+        "month": 5,
+        "share": 0.02,
+        "orders": 1600000,
+        "gross": 1126400000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 1126400000,
+        "balance": -8809280000
+      },
+      {
+        "month": 6,
+        "share": 0.02,
+        "orders": 1600000,
+        "gross": 1126400000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 1126400000,
+        "balance": -7682880000
+      },
+      {
+        "month": 7,
+        "share": 0.02,
+        "orders": 1600000,
+        "gross": 1126400000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 1126400000,
+        "balance": -6556480000
+      },
+      {
+        "month": 8,
+        "share": 0.02,
+        "orders": 1600000,
+        "gross": 1126400000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 1126400000,
+        "balance": -5430080000
+      },
+      {
+        "month": 9,
+        "share": 0.02,
+        "orders": 1600000,
+        "gross": 1126400000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 1126400000,
+        "balance": -4303680000
+      },
+      {
+        "month": 10,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 9600000000,
+        "cash": -3968000000,
+        "balance": -8271680000
+      },
+      {
+        "month": 11,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": -2639680000
+      },
+      {
+        "month": 12,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": 2992320000
+      },
+      {
+        "month": 13,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": 8624320000
+      },
+      {
+        "month": 14,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": 14256320000
+      },
+      {
+        "month": 15,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": 19888320000
+      },
+      {
+        "month": 16,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": 25520320000
+      },
+      {
+        "month": 17,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": 31152320000
+      },
+      {
+        "month": 18,
+        "share": 0.1,
+        "orders": 8000000,
+        "gross": 5632000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 5632000000,
+        "balance": 36784320000
+      },
+      {
+        "month": 19,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 24000000000,
+        "cash": -7104000000,
+        "balance": 29680320000
+      },
+      {
+        "month": 20,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 46576320000
+      },
+      {
+        "month": 21,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 63472320000
+      },
+      {
+        "month": 22,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 80368320000
+      },
+      {
+        "month": 23,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 97264320000
+      },
+      {
+        "month": 24,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 114160320000
+      },
+      {
+        "month": 25,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 131056320000
+      },
+      {
+        "month": 26,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 147952320000
+      },
+      {
+        "month": 27,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 164848320000
+      },
+      {
+        "month": 28,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 181744320000
+      },
+      {
+        "month": 29,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 198640320000
+      },
+      {
+        "month": 30,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 215536320000
+      },
+      {
+        "month": 31,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 232432320000
+      },
+      {
+        "month": 32,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 249328320000
+      },
+      {
+        "month": 33,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 266224320000
+      },
+      {
+        "month": 34,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 283120320000
+      },
+      {
+        "month": 35,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 300016320000
+      },
+      {
+        "month": 36,
+        "share": 0.3,
+        "orders": 24000000,
+        "gross": 16896000000,
+        "opex": 0,
+        "capex": 0,
+        "cash": 16896000000,
+        "balance": 316912320000
+      }
+    ],
+    "formula": "NPV = −I0 + Σ CFm / (1+r)^(m/12); ROI = (выгода−затраты)/затраты"
+  },
+  "forecast": {
+    "naive": {
+      "mae": 0.42857142857142855,
+      "bias": -0.14285714285714285,
+      "wape": 0.13636363636363635,
+      "rmse": 0.6546536707079771,
+      "hitRate": 1,
+      "falseDispatch": 0,
+      "missed": 0,
+      "predictions": [
+        3,
+        2,
+        2,
+        3,
+        3,
+        4,
+        4
+      ],
+      "actuals": [
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "errors": [
+        1,
+        0,
+        -1,
+        0,
+        -1,
+        0,
+        0
+      ],
+      "trainDays": 53,
+      "testDays": 7,
+      "protocol": "rolling-origin / один день вперёд"
+    },
+    "movingAverage": {
+      "mae": 0.6938775510204083,
+      "bias": -0.28571428571428564,
+      "wape": 0.2207792207792208,
+      "rmse": 0.7674120684474762,
+      "hitRate": 1,
+      "falseDispatch": 0,
+      "missed": 0,
+      "predictions": [
+        2.7142857142857144,
+        2.7142857142857144,
+        2.7142857142857144,
+        2.857142857142857,
+        3,
+        3,
+        3
+      ],
+      "actuals": [
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "errors": [
+        0.7142857142857144,
+        0.7142857142857144,
+        -0.2857142857142856,
+        -0.1428571428571428,
+        -1,
+        -1,
+        -1
+      ],
+      "trainDays": 53,
+      "testDays": 7,
+      "protocol": "rolling-origin / один день вперёд"
+    },
+    "ewma": {
+      "mae": 0.7634391383544392,
+      "bias": -0.22107453136717695,
+      "wape": 0.24291245311277612,
+      "rmse": 0.8234497658679423,
+      "hitRate": 1,
+      "falseDispatch": 0,
+      "missed": 0,
+      "predictions": [
+        3.11663301438554,
+        2.781643110069878,
+        2.5471501770489144,
+        2.68300512393424,
+        2.778103586753968,
+        3.1446725107277773,
+        3.401270757509444
+      ],
+      "actuals": [
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "errors": [
+        1.11663301438554,
+        0.781643110069878,
+        -0.45284982295108556,
+        -0.31699487606576016,
+        -1.2218964132460322,
+        -0.8553274892722227,
+        -0.5987292424905561
+      ],
+      "trainDays": 53,
+      "testDays": 7,
+      "protocol": "rolling-origin / один день вперёд"
+    },
+    "seasonalNaive": {
+      "mae": 0.42857142857142855,
+      "bias": -0.42857142857142855,
+      "wape": 0.13636363636363635,
+      "rmse": 0.6546536707079771,
+      "hitRate": 1,
+      "falseDispatch": 0,
+      "missed": 0,
+      "predictions": [
+        2,
+        2,
+        2,
+        2,
+        4,
+        4,
+        3
+      ],
+      "actuals": [
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "errors": [
+        0,
+        0,
+        -1,
+        -1,
+        0,
+        0,
+        -1
+      ],
+      "trainDays": 53,
+      "testDays": 7,
+      "protocol": "rolling-origin / один день вперёд"
+    },
+    "seasonalAverage": {
+      "mae": 0.4642857142857143,
+      "bias": -0.32142857142857145,
+      "wape": 0.14772727272727273,
+      "rmse": 0.5428101483418094,
+      "hitRate": 1,
+      "falseDispatch": 0,
+      "missed": 0,
+      "predictions": [
+        2.5,
+        2,
+        2,
+        2.5,
+        3.5,
+        3.75,
+        3.5
+      ],
+      "actuals": [
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "errors": [
+        0.5,
+        0,
+        -1,
+        -0.5,
+        -0.5,
+        -0.25,
+        -0.5
+      ],
+      "trainDays": 53,
+      "testDays": 7,
+      "protocol": "rolling-origin / один день вперёд"
+    }
+  },
+  "scenarios": [
+    {
+      "params": {
+        "name": "База",
+        "batchSize": 40,
+        "days": 10
+      },
+      "result": {
+        "route": "M2",
+        "total": 9296,
+        "breakdown": {
+          "placement": 2200,
+          "storage": 1300,
+          "sorting": 1000,
+          "lastMile": 2000,
+          "pvz": 1400,
+          "returns": 596,
+          "it": 800
+        },
+        "classic": {
+          "total": 10000,
+          "breakdown": {
+            "transport": 2400,
+            "storage": 1200,
+            "sorting": 1400,
+            "lastMile": 2400,
+            "pvz": 1300,
+            "returns": 700,
+            "it": 600
+          }
+        },
+        "trip": {
+          "total": 80000,
+          "perParcel": 2000,
+          "breakdown": {
+            "fixed": 48000,
+            "variable": 32000,
+            "extraStops": 0,
+            "wait": 0,
+            "parcels": 40,
+            "stops": 1,
+            "waitMinutes": 0
+          },
+          "formula": "48000 + 800 × 40 + 4000 × (1 − 1) + 600 × 0"
+        },
+        "savings": 704,
+        "days": 10,
+        "batchSize": 40,
+        "etaHours": 6,
+        "parameters": {
+          "route": "M2",
+          "baselineRoute": "C1",
+          "batchSize": 40,
+          "days": 10,
+          "stops": 1,
+          "waitMinutes": 0,
+          "returnRate": 0.12,
+          "resaleShare": 0.5,
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commissionRate": 0.15,
+          "promisedHours": 60
+        },
+        "formula": "Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)",
+        "wb": {
+          "cost": 9296,
+          "revenue": 10900,
+          "margin": 1604,
+          "baselineMargin": 1200
+        },
+        "pvz": {
+          "ordinaryReward": 1300,
+          "revenue": 1400,
+          "cost": 750,
+          "result": 650
+        },
+        "seller": {
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commission": 15000,
+          "classicFee": 11200,
+          "fee": 10900,
+          "before": 13800,
+          "after": 14100
+        },
+        "buyer": {
+          "price": 100000,
+          "delivery": 0,
+          "baselineDelivery": 0,
+          "promisedHours": 60,
+          "etaHours": 6
+        },
+        "guards": {
+          "wb": true,
+          "pvz": true,
+          "seller": true,
+          "buyer": true
+        }
+      }
+    },
+    {
+      "params": {
+        "name": "Малый рейс",
+        "batchSize": 10,
+        "days": 10
+      },
+      "result": {
+        "route": "M2",
+        "total": 12896,
+        "breakdown": {
+          "placement": 2200,
+          "storage": 1300,
+          "sorting": 1000,
+          "lastMile": 5600,
+          "pvz": 1400,
+          "returns": 596,
+          "it": 800
+        },
+        "classic": {
+          "total": 10000,
+          "breakdown": {
+            "transport": 2400,
+            "storage": 1200,
+            "sorting": 1400,
+            "lastMile": 2400,
+            "pvz": 1300,
+            "returns": 700,
+            "it": 600
+          }
+        },
+        "trip": {
+          "total": 56000,
+          "perParcel": 5600,
+          "breakdown": {
+            "fixed": 48000,
+            "variable": 8000,
+            "extraStops": 0,
+            "wait": 0,
+            "parcels": 10,
+            "stops": 1,
+            "waitMinutes": 0
+          },
+          "formula": "48000 + 800 × 10 + 4000 × (1 − 1) + 600 × 0"
+        },
+        "savings": -2896,
+        "days": 10,
+        "batchSize": 10,
+        "etaHours": 6,
+        "parameters": {
+          "route": "M2",
+          "baselineRoute": "C1",
+          "batchSize": 10,
+          "days": 10,
+          "stops": 1,
+          "waitMinutes": 0,
+          "returnRate": 0.12,
+          "resaleShare": 0.5,
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commissionRate": 0.15,
+          "promisedHours": 60
+        },
+        "formula": "Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)",
+        "wb": {
+          "cost": 12896,
+          "revenue": 10900,
+          "margin": -1996,
+          "baselineMargin": 1200
+        },
+        "pvz": {
+          "ordinaryReward": 1300,
+          "revenue": 1400,
+          "cost": 750,
+          "result": 650
+        },
+        "seller": {
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commission": 15000,
+          "classicFee": 11200,
+          "fee": 10900,
+          "before": 13800,
+          "after": 14100
+        },
+        "buyer": {
+          "price": 100000,
+          "delivery": 0,
+          "baselineDelivery": 0,
+          "promisedHours": 60,
+          "etaHours": 6
+        },
+        "guards": {
+          "wb": false,
+          "pvz": true,
+          "seller": true,
+          "buyer": true
+        }
+      }
+    },
+    {
+      "params": {
+        "name": "Крупный рейс",
+        "batchSize": 60,
+        "days": 10
+      },
+      "result": {
+        "route": "M2",
+        "total": 8896,
+        "breakdown": {
+          "placement": 2200,
+          "storage": 1300,
+          "sorting": 1000,
+          "lastMile": 1600,
+          "pvz": 1400,
+          "returns": 596,
+          "it": 800
+        },
+        "classic": {
+          "total": 10000,
+          "breakdown": {
+            "transport": 2400,
+            "storage": 1200,
+            "sorting": 1400,
+            "lastMile": 2400,
+            "pvz": 1300,
+            "returns": 700,
+            "it": 600
+          }
+        },
+        "trip": {
+          "total": 96000,
+          "perParcel": 1600,
+          "breakdown": {
+            "fixed": 48000,
+            "variable": 48000,
+            "extraStops": 0,
+            "wait": 0,
+            "parcels": 60,
+            "stops": 1,
+            "waitMinutes": 0
+          },
+          "formula": "48000 + 800 × 60 + 4000 × (1 − 1) + 600 × 0"
+        },
+        "savings": 1104,
+        "days": 10,
+        "batchSize": 60,
+        "etaHours": 6,
+        "parameters": {
+          "route": "M2",
+          "baselineRoute": "C1",
+          "batchSize": 60,
+          "days": 10,
+          "stops": 1,
+          "waitMinutes": 0,
+          "returnRate": 0.12,
+          "resaleShare": 0.5,
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commissionRate": 0.15,
+          "promisedHours": 60
+        },
+        "formula": "Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)",
+        "wb": {
+          "cost": 8896,
+          "revenue": 10900,
+          "margin": 2004,
+          "baselineMargin": 1200
+        },
+        "pvz": {
+          "ordinaryReward": 1300,
+          "revenue": 1400,
+          "cost": 750,
+          "result": 650
+        },
+        "seller": {
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commission": 15000,
+          "classicFee": 11200,
+          "fee": 10900,
+          "before": 13800,
+          "after": 14100
+        },
+        "buyer": {
+          "price": 100000,
+          "delivery": 0,
+          "baselineDelivery": 0,
+          "promisedHours": 60,
+          "etaHours": 6
+        },
+        "guards": {
+          "wb": true,
+          "pvz": true,
+          "seller": true,
+          "buyer": true
+        }
+      }
+    },
+    {
+      "params": {
+        "name": "4 остановки",
+        "batchSize": 40,
+        "days": 10,
+        "stops": 4
+      },
+      "result": {
+        "route": "M2",
+        "total": 9596,
+        "breakdown": {
+          "placement": 2200,
+          "storage": 1300,
+          "sorting": 1000,
+          "lastMile": 2300,
+          "pvz": 1400,
+          "returns": 596,
+          "it": 800
+        },
+        "classic": {
+          "total": 10000,
+          "breakdown": {
+            "transport": 2400,
+            "storage": 1200,
+            "sorting": 1400,
+            "lastMile": 2400,
+            "pvz": 1300,
+            "returns": 700,
+            "it": 600
+          }
+        },
+        "trip": {
+          "total": 92000,
+          "perParcel": 2300,
+          "breakdown": {
+            "fixed": 48000,
+            "variable": 32000,
+            "extraStops": 12000,
+            "wait": 0,
+            "parcels": 40,
+            "stops": 4,
+            "waitMinutes": 0
+          },
+          "formula": "48000 + 800 × 40 + 4000 × (4 − 1) + 600 × 0"
+        },
+        "savings": 404,
+        "days": 10,
+        "batchSize": 40,
+        "etaHours": 6,
+        "parameters": {
+          "route": "M2",
+          "baselineRoute": "C1",
+          "batchSize": 40,
+          "days": 10,
+          "stops": 4,
+          "waitMinutes": 0,
+          "returnRate": 0.12,
+          "resaleShare": 0.5,
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commissionRate": 0.15,
+          "promisedHours": 60
+        },
+        "formula": "Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)",
+        "wb": {
+          "cost": 9596,
+          "revenue": 10900,
+          "margin": 1304,
+          "baselineMargin": 1200
+        },
+        "pvz": {
+          "ordinaryReward": 1300,
+          "revenue": 1400,
+          "cost": 750,
+          "result": 650
+        },
+        "seller": {
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commission": 15000,
+          "classicFee": 11200,
+          "fee": 10900,
+          "before": 13800,
+          "after": 14100
+        },
+        "buyer": {
+          "price": 100000,
+          "delivery": 0,
+          "baselineDelivery": 0,
+          "promisedHours": 60,
+          "etaHours": 6
+        },
+        "guards": {
+          "wb": true,
+          "pvz": true,
+          "seller": true,
+          "buyer": true
+        }
+      }
+    },
+    {
+      "params": {
+        "name": "Простой 20 мин",
+        "batchSize": 40,
+        "days": 10,
+        "waitMinutes": 20
+      },
+      "result": {
+        "route": "M2",
+        "total": 9596,
+        "breakdown": {
+          "placement": 2200,
+          "storage": 1300,
+          "sorting": 1000,
+          "lastMile": 2300,
+          "pvz": 1400,
+          "returns": 596,
+          "it": 800
+        },
+        "classic": {
+          "total": 10000,
+          "breakdown": {
+            "transport": 2400,
+            "storage": 1200,
+            "sorting": 1400,
+            "lastMile": 2400,
+            "pvz": 1300,
+            "returns": 700,
+            "it": 600
+          }
+        },
+        "trip": {
+          "total": 92000,
+          "perParcel": 2300,
+          "breakdown": {
+            "fixed": 48000,
+            "variable": 32000,
+            "extraStops": 0,
+            "wait": 12000,
+            "parcels": 40,
+            "stops": 1,
+            "waitMinutes": 20
+          },
+          "formula": "48000 + 800 × 40 + 4000 × (1 − 1) + 600 × 20"
+        },
+        "savings": 404,
+        "days": 10,
+        "batchSize": 40,
+        "etaHours": 6,
+        "parameters": {
+          "route": "M2",
+          "baselineRoute": "C1",
+          "batchSize": 40,
+          "days": 10,
+          "stops": 1,
+          "waitMinutes": 20,
+          "returnRate": 0.12,
+          "resaleShare": 0.5,
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commissionRate": 0.15,
+          "promisedHours": 60
+        },
+        "formula": "Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)",
+        "wb": {
+          "cost": 9596,
+          "revenue": 10900,
+          "margin": 1304,
+          "baselineMargin": 1200
+        },
+        "pvz": {
+          "ordinaryReward": 1300,
+          "revenue": 1400,
+          "cost": 750,
+          "result": 650
+        },
+        "seller": {
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commission": 15000,
+          "classicFee": 11200,
+          "fee": 10900,
+          "before": 13800,
+          "after": 14100
+        },
+        "buyer": {
+          "price": 100000,
+          "delivery": 0,
+          "baselineDelivery": 0,
+          "promisedHours": 60,
+          "etaHours": 6
+        },
+        "guards": {
+          "wb": true,
+          "pvz": true,
+          "seller": true,
+          "buyer": true
+        }
+      }
+    },
+    {
+      "params": {
+        "name": "40 суток",
+        "batchSize": 40,
+        "days": 40
+      },
+      "result": {
+        "route": "M2",
+        "total": 14596,
+        "breakdown": {
+          "placement": 2200,
+          "storage": 6600,
+          "sorting": 1000,
+          "lastMile": 2000,
+          "pvz": 1400,
+          "returns": 596,
+          "it": 800
+        },
+        "classic": {
+          "total": 13600,
+          "breakdown": {
+            "transport": 2400,
+            "storage": 4800,
+            "sorting": 1400,
+            "lastMile": 2400,
+            "pvz": 1300,
+            "returns": 700,
+            "it": 600
+          }
+        },
+        "trip": {
+          "total": 80000,
+          "perParcel": 2000,
+          "breakdown": {
+            "fixed": 48000,
+            "variable": 32000,
+            "extraStops": 0,
+            "wait": 0,
+            "parcels": 40,
+            "stops": 1,
+            "waitMinutes": 0
+          },
+          "formula": "48000 + 800 × 40 + 4000 × (1 − 1) + 600 × 0"
+        },
+        "savings": -996,
+        "days": 40,
+        "batchSize": 40,
+        "etaHours": 6,
+        "parameters": {
+          "route": "M2",
+          "baselineRoute": "C1",
+          "batchSize": 40,
+          "days": 40,
+          "stops": 1,
+          "waitMinutes": 0,
+          "returnRate": 0.12,
+          "resaleShare": 0.5,
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commissionRate": 0.15,
+          "promisedHours": 60
+        },
+        "formula": "Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)",
+        "wb": {
+          "cost": 14596,
+          "revenue": 16780,
+          "margin": 2184,
+          "baselineMargin": 1240
+        },
+        "pvz": {
+          "ordinaryReward": 1300,
+          "revenue": 6700,
+          "cost": 1800,
+          "result": 4900
+        },
+        "seller": {
+          "price": 100000,
+          "purchaseCost": 60000,
+          "commission": 15000,
+          "classicFee": 14840,
+          "fee": 16780,
+          "before": 10160,
+          "after": 8220
+        },
+        "buyer": {
+          "price": 100000,
+          "delivery": 0,
+          "baselineDelivery": 0,
+          "promisedHours": 60,
+          "etaHours": 6
+        },
+        "guards": {
+          "wb": false,
+          "pvz": true,
+          "seller": false,
+          "buyer": true
+        }
+      }
+    }
+  ]
+}

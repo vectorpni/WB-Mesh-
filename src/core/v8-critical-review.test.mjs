@@ -5,6 +5,10 @@ import {InventoryManager} from './inventory-engine.js';
 import {CostEngine} from './cost-engine.js';
 
 const make=m=>m.createOrder({productId:'prod-1',quantity:2,sourcePvzId:'pvz-perm-plus',destinationPvzId:'pvz-perm-plus'});
+test('Окно приёмки заканчивается в 17:00, а не в 17:59',()=>{
+ const m=new StateManager();m.stepTime(7.5);
+ assert.equal(m.receiveSupply('pvz-perm-plus','prod-1',1,'after-window').success,false);
+});
 test('Убыточная экономика сохраняет отрицательные потоки NPV, без обнуления потерь',()=>{
  const e=new CostEngine(),loss=e.calculateInvestment({unitSavings:-100});
  assert.ok(loss.benefits<0);assert.ok(loss.npv<e.calculateInvestment({unitSavings:0}).npv);

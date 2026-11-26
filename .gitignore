@@ -14,3 +14,14 @@ Thumbs.db
 
 # Local state (demo data)
 *.local.json
+
+# V8 publication hygiene (Claude takeover)
+*.zip
+poppler/
+deliverables/sources/
+evidence/sources/
+evidence/browser/
+evidence/upstream-skills/
+server.log
+test-*.png
+test-visual-*.png

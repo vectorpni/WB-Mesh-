@@ -18,7 +18,7 @@ result={'checks':checks,'errors':errors,'formula_count':sum(c.data_type=='f' for
 (root/'evidence/workbook-validation.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
 print(result);assert all(checks.values())
 out=root/'evidence/visual-review';out.mkdir(exist_ok=True)
-for prefix in ['firefox-1920x1080','firefox-1536x864','firefox-1366x768','firefox-1280x720','firefox-390x844','chromium-1536x864','edge-1536x864','chrome-1536x864']:
+for prefix in [f'{b}-{w}x{h}' for b in ['firefox','chromium','edge','chrome'] for w,h in [(1920,1080),(1536,864),(1366,768),(1280,720),(390,844)]]:
  files=sorted((root/'evidence/browser').glob(prefix+'-*.png'))
  if not files:continue
  thumbs=[]

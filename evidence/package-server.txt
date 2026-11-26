@@ -1,0 +1,3 @@
+🚀 WB Mesh Control System running at http://localhost:3108
+📁 Serving from: C:\Sites\WB-Mesh-release-check-20261126
+⏰ Started at: 2026-11-26T08:09:12.016Z

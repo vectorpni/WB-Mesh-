@@ -62,7 +62,7 @@ export class RouteOptimizer {
     if(['M1','M2'].includes(type)) {
       for(const [guard,ok] of Object.entries(economics.guards)) if(!ok) this.reject(c,guard==='buyer'?'BUYER_GUARD':'NOT_PROFITABLE',`Условие выгоды не выполнено: ${{wb:'Wildberries',pvz:'ПВЗ',seller:'продавец',buyer:'покупатель'}[guard]}`);
       const hour=(order.currentTime ?? 10)%24;
-      if(type==='M2' && (hour<9 || hour>=18)) this.reject(c,'PEAK','Рейс вне окна приёмки 09:00–17:00');
+      if(type==='M2' && (hour<9 || hour>17)) this.reject(c,'PEAK','Рейс вне окна приёмки 09:00–17:00');
       if(dest.operationalSlots<=0 || source.operationalSlots<=0) this.reject(c,'NO_SLOTS','Нет операционных слотов');
       if(!operationLoad(dest,order.currentTime ?? 10,t).available||!operationLoad(source,order.currentTime ?? 10,t).available)this.reject(c,'PEAK_LOAD','Исчерпан лимит Mesh-операций за час');
     }

@@ -1,105 +1,31 @@
-# DEMO_SCRIPT.md — WB Mesh Control System Demo Scenarios
+# Защита Vector PNI · WB Mesh V8
 
-**Project:** WB Mesh Control System  
-**Branch:** `feature/v5-development`  
-**Total time:** 3–5 min (full) / ~2 min (final cut)  
-**Environment:** http://localhost:3000 — offline-capable, no external network, no API keys
+## Подготовка
 
----
+Запустить npm run dev, открыть localhost:3000, проверить 7 разделов. В настройках экспортировать текущий JSON; демо-пресеты сбрасывают сеть, резервная копия сессии доступна для восстановления. Оставить виртуальные часы на паузе. Для автономного показа заранее один раз открыть сайт. Полезны 1536×864 или 1920×1080. Режим жюри — в разделе демонстрации/выборе роли.
 
-## Prerequisites
-1. `node server.js` running on port 3000 (`curl http://localhost:3000` → 200).
-2. Open http://localhost:3000 in a browser.
-3. Role selector in header; Demo tab contains 5 scenario cards.
+## Полный живой показ — 4 минуты
 
-All scenarios are driven by `StateManager` demo scenarios (`src/core/app-state.js`) and the virtual time clock — reproducible, no real waiting.
+0:00–0:30. Обзор: «Мы используем существующие ПВЗ. Хаб остаётся основой межгорода. Цель — снижать полную себестоимость, сохраняя экономику четырёх сторон».
 
----
+0:30–1:10. Экономика: n40,d10:100/92,96; показать 7 статей. Партия 10: рейс 56 ₽/ед, M2 отклоняется, схема/объяснение меняются на C1; вернуть 40. Транспорт 30 — только ноль на плече, не порог всей цепочки. ПВЗ 14−7,5=6,5 ₽ операционного остатка.
 
-## Scenario 1 — Городской заказ (M1/M2)
-**Goal:** Intra-city delivery with M1 route, zero transport cost.
+1:10–1:45. Демо «Городской заказ»: M2, завершённые операции, журнал, остатки и начисление. Открыть «Почему?» — кандидаты/отказы. Межгород: C2 без локального стока, магистраль сохранена.
 
-**Steps**
-1. Select role `pvz_owner` or `mcs_dispatcher`.
-2. Demo tab → "Городской заказ (M1/M2)".
-3. System creates an order within Perm: ПВЗ «Плюс Ареал» → same ПВЗ.
-4. MCS selects M1 route (hub-to-PVZ local); transport cost = 0₽.
-5. Run PVZ actions: receive → store → pack → dispatch → issue → settle.
+1:45–2:20. Возврат: товар в карантине, сторно один раз; повтор не увеличивает запас. Продажа после осмотра и достаточного спроса. Нет спроса — вывоз.
 
-**Expected:** Order reaches ISSUED/SETTLED; mesh economics apply; transport 0₽.  
-**Time:** ~45 sec
+2:20–2:50. Сбой логистики: посмотреть объяснение заблокированного маршрута. В данном пресете нет локального товара и доступного хаба, поэтому успех не рисуется. При доступном хабе/сбое MCS разрешена классика. Долгое хранение 40 сут: прогрессивный тариф, продавцу невыгоден Mesh →C1.
 
----
+2:50–3:25. Продавец: остатки поПВЗ, реальный расчёт прибыли, история/прогноз, WAPE. MCS: дефицит, пополнение, резерв будущего обратного рейса, ненулевая стоимость. После 60 сут создаётся задание вывоза неликвида.
 
-## Scenario 2 — Межгородний заказ (C2)
-**Goal:** Intercity delivery with cost consolidation across a trunk route.
+3:25–4:00. Результаты: тесты, ограничения и пилот 10 ПВЗ/30 дней. 30%Mesh — гипотеза,99,5% — целевая точность пилота. На снимке 2000 заказов наблюдаемый эффект 6280,10 ₽, без утверждения промышленной производительности.
 
-**Steps**
-1. Demo tab → "Межгородний заказ (C2)".
-2. 5 orders consolidated into one trip Perm → Екатеринбург.
-3. MCS selects C2 route (trunk line between cities).
-4. Break-even = 5 orders per trip.
+## Сокращённый показ — 2 минуты
 
-**Expected:** C2 route selected; per-order transport amortized; break-even at 5 orders.  
-**Time:** ~45 sec
+0:00–0:15 Обзор/рольПВЗ/остатки. 0:15–0:40 Экономика 40→10: M2→C1 и пересчёт. 0:40–1:00 Демо городской M2/«Почему?». 1:00–1:15 Межгород C2. 1:15–1:30 Возврат/карантин. 1:30–1:45 Сбой/обоснованный отказ. 1:45–2:00 Хранение 40 сут/C1 и итог. Все 5 пресетов выполняются нажатием, не статичными картинками.
 
----
+## Ответы на вопросы
 
-## Scenario 3 — Возврат через Mesh (return_flow)
-**Goal:** Mesh return cheaper than hub return; quarantine lifecycle.
+Почему 31? (480+8n)/n<24. Почему 26? Полная цепочка учитывает остальные статьи; маржа и ε проверяются отдельно. Кто оплачивает бонус? WB, он включён в себестоимость и доходПВЗ один раз. Что значит 6,5 ₽? Дополнительный операционный результат, не вся чистая прибыльПВЗ. Где нейросеть? Здесь статистические методы; нейросеть/точность реального рынка не заявляется. Почему нельзя сразу C1? Без подтверждённого местного товара он невозможен. Что дальше? Пилот и серверные транзакции, общая консолидация заказов, сканеры и синхронизация.
 
-**Steps**
-1. Demo tab → "Возврат через Mesh".
-2. Customer does not pick up → order status ISSUED.
-3. Action "return" → item moves to quarantine (24h hold).
-4. Compare: Mesh return 20₽ vs hub return 50₽.
-5. Quarantine auto-releases after 24h (virtual time).
-
-**Expected:** Mesh return cheaper; item held in quarantine then auto-released.  
-**Time:** ~45 sec
-
----
-
-## Scenario 4 — Сбой маршрута (route_failure)
-**Goal:** Automatic route recalculation on vehicle failure, SLA preserved.
-
-**Steps**
-1. Demo tab → "Сбой маршрута".
-2. Vehicle breaks down mid-route (C2).
-3. MCS recalculates in ~2 sec, switches C2 → C1.
-4. SLA 24h not violated.
-
-**Expected:** Route recalculated < 2 sec; SLA preserved.  
-**Time:** ~45 sec
-
----
-
-## Scenario 5 — Долгое хранение (long_storage)
-**Goal:** Progressive storage tariff over time.
-
-**Steps**
-1. Demo tab → "Долгое хранение".
-2. Item stored 30 days.
-3. Tariff: ×1 (days 1–14), ×1.5 (days 15–30), ×2.5 (days 31–60); first 7 days free.
-4. Watch storage cost grow progressively.
-
-**Expected:** Storage cost scales with the progressive multiplier after the free period.  
-**Time:** ~45 sec
-
----
-
-## 2-minute final demo (recommended)
-1. Dashboard → KPIs + live network map (~15 sec)
-2. Scenario 1 city order M1 (~30 sec)
-3. Scenario 3 return via Mesh (~30 sec)
-4. Scenario 4 route failure recalculation (~30 sec)
-5. Economics tab → Classic vs Mesh unit economics (~15 sec)
-6. Closing savings summary (~15 sec)
-
----
-
-## Notes
-- All 5 scenarios reproducible via `StateManager` demo scenarios; deterministic outputs.
-- Virtual clock accelerates storage aging; no real-time waiting required.
-- Zero external network calls; works fully offline.
-- E2E verification: `node test-final.cjs` → 0 errors, 5 demo scenarios confirmed.
+Резервный материал: PDF нового черновика и скриншоты. Если живой показ недоступен, назвать это резервной записью/изображением, не выдавать за текущий расчёт.

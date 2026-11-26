@@ -1,0 +1,6 @@
+from pathlib import Path
+p=Path('src/ui/economics-view.js');s=p.read_text(encoding='utf8').replace('Для убыточного рейса инвестиционный сценарий предполагает отказ от Mesh (экономия 0).','Инвестиционный расчёт показывает эффект принудительного применения выбранного Mesh-сценария, включая убытки. MCS отдельно откажется от невыгодного маршрута.');p.write_text(s,encoding='utf8')
+p=Path('src/ui/workspace-view.js');s=p.read_text(encoding='utf8').replace("heading('Mesh Control System'","heading('Центр управления Mesh'")
+s=s.replace('<label class="v-file">Импорт состояния<input type="file" id="v8Import" accept="application/json"></label>','<div class="v-file"><label class="v-btn secondary" for="v8Import">Выбрать JSON для импорта</label><input class="v-file-native" type="file" id="v8Import" accept="application/json" aria-label="Выбрать JSON для импорта"></div>');p.write_text(s,encoding='utf8')
+p=Path('src/ui/v8.css');s=p.read_text(encoding='utf8')+'\n.v8 .v-file-native{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden;padding:0;border:0}.v-file:focus-within{outline:3px solid #ad68d8;outline-offset:4px;border-radius:9px}\n';p.write_text(s,encoding='utf8')
+print('Russian controls and investment explanation updated')

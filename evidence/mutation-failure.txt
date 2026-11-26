@@ -1,0 +1,122 @@
+✔ Сквозной M1: резерв не уменьшает физический запас, выдача уменьшает (12.9356ms)
+✔ Повторная выдача и начисление не списывают товар и деньги повторно (9.8004ms)
+✔ Возврат и повторный возврат: только карантин и одно сторно (11.8669ms)
+✖ M2: груз в пути не считается физическим остатком получателя (4.4766ms)
+✔ Межгород без локального товара остаётся C2 (2.5091ms)
+✔ Все маршруты недоступны: заказ не выдаётся с фиктивным успехом (3.6052ms)
+✔ Отмена освобождает резерв без прироста физического товара (2.3995ms)
+✔ Перезапуск через экспорт/импорт сохраняет резерв и запрет двойного начисления (10.3723ms)
+✔ Сброс очищает начисления и восстанавливает воспроизводимый спрос (4.5671ms)
+✔ Транспортный порог 30 и полная цепочка 26 различаются (0.2042ms)
+✔ Хранение: границы 14/15/30/31 суток (0.8079ms)
+✖ Четыре стороны контрольного примера и M1/C2 (2.5452ms)
+✔ Малый рейс и длительное хранение честно убыточны (0.1315ms)
+✔ Приёмка сверх вместимости и отрицательные операции атомарно отклоняются (1.4114ms)
+✔ Сезонный прогноз проверяется по каждому дню, а не одним числом (0.4814ms)
+✔ В прогнозе есть наивный baseline и воспроизводимая проверочная выборка (0.1341ms)
+✖ Демо Городской заказ: два воспроизводимых прогона (14.6014ms)
+✔ Демо Межгород: два воспроизводимых прогона (10.1363ms)
+✖ Демо Возврат: два воспроизводимых прогона (8.948ms)
+✔ Демо Сбой логистики: два воспроизводимых прогона (6.9788ms)
+✔ Демо Длительное хранение: два воспроизводимых прогона (9.7803ms)
+✔ Импорт отрицательного остатка отклоняется атомарно (4.6197ms)
+✔ Журнал движений восстанавливает остатки и обнаруживает ручную порчу (5.9295ms)
+✔ Подтверждённый попутный рейс учитывает ненулевую дополнительную стоимость (0.1837ms)
+✔ План по прогнозу резервирует будущую вместимость и реально перемещает товар (36.6686ms)
+✔ Скидка продавцу не должна ухудшать маржу WB в MCS (0.1082ms)
+✔ Габариты S/M/L занимают 1/3/8 мест (2.1061ms)
+✔ NPV и ROI считаются из денежных потоков, не копируются из отчёта (0.2497ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 24
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 274.6517
+
+✖ failing tests:
+
+test at src\core\v8-workflow.test.mjs:27:1
+✖ M2: груз в пути не считается физическим остатком получателя (4.4766ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'C1' !== 'M2'
+  
+      at TestContext.<anonymous> (file:///C:/Sites/RWB-Mesh/src/core/v8-workflow.test.mjs:29:114)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'C1',
+    expected: 'M2',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src\core\v8-workflow.test.mjs:58:1
+✖ Четыре стороны контрольного примера и M1/C2 (2.5452ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Object.values(m.guards).every(Boolean))
+  
+      at TestContext.<anonymous> (file:///C:/Sites/RWB-Mesh/src/core/v8-workflow.test.mjs:61:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src\core\v8-workflow.test.mjs:77:33
+✖ Демо Городской заказ: два воспроизводимых прогона (14.6014ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(a.passed)
+  
+      at TestContext.<anonymous> (file:///C:/Sites/RWB-Mesh/src/core/v8-workflow.test.mjs:78:100)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src\core\v8-workflow.test.mjs:77:33
+✖ Демо Возврат: два воспроизводимых прогона (8.948ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(a.passed)
+  
+      at TestContext.<anonymous> (file:///C:/Sites/RWB-Mesh/src/core/v8-workflow.test.mjs:78:100)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

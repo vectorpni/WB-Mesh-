@@ -1,349 +1,73 @@
-﻿# WB Mesh Control System
+# WB Mesh V8 · Vector PNI
 
-> **RWB × PGU "TOP AI START" Hackathon Entry** — Mesh logistics control system for Wildberries
+«Не строим новую сеть. Раскрываем потенциал существующей».
 
-## 🎯 Overview
+Исследовательский локальный MVP для RWB × ПГТУ, «ТОП ИИ СТАРТ». Отобранные ПВЗ дополняют хабы локальным хранением и доставкой. Это проект команды, не официальный сервис Wildberries. Данные, тарифы и прогнозы синтетические; результаты реального пилота не заявляются.
 
-WB Mesh Control System is a production-ready logistics management platform that transforms Wildberries' pickup points (ПВЗ) into a mesh network of mini-hubs, enabling:
+## Запуск на Windows, Linux или macOS
 
-- **M1**: Intra-PVZ routing (same pickup point)
-- **M2**: Direct inter-PVZ routes
-- **C1**: Intra-city via hub
-- **C2**: Inter-city via trunk lines
+Нужен Node.js 22+; приложение и базовые тесты не требуют установки npm-пакетов. Python и Office нужны только для повторной генерации документов.
 
-**Target**: Reduce per-order logistics cost from 120₽ (Classic) → 79₽ (Mesh) — **~34% savings per order**
-
----
-
-## 🏗 Architecture
-
-```
-src/
-├── core/
-│   ├── types.js          # TypeScript-style JSDoc types, constants, utilities
-│   ├── mcs-engine.js     # Calculation engine (CostEngine, RouteOptimizer, InventoryManager, etc.)
-│   └── app-state.js      # StateManager singleton with virtual time, order lifecycle, demo scenarios
-├── ui/
-│   ├── design-system.css # Complete Wildberries-inspired design system
-│   ├── components.js     # Reusable UI components (KPI cards, route cards, charts, etc.)
-│   └── main.js           # Application entry point, reactive UI binding, tab navigation
-├── index.html            # Main HTML entry point
-└── server.js             # Static file server
-```
-
-### Core Modules
-
-| Module | Responsibility |
-|--------|---------------|
-| **CostEngine** | Trip cost formula `C = 48000 + 800n + 4000(k-1) + 600t` (kopecks), storage, PVZ economics |
-| **RouteOptimizer** | Finds M1/M2/C1/C2 candidates, selects optimal with constraint checking |
-| **InventoryManager** | Batch tracking, reservations, transfers, returns, quarantine, progressive aging |
-| **DemandForecast** | EWMA, Moving Average, Seasonal Naive, Seasonal Average with holdout evaluation |
-| **CapacityManager** | PVZ capacity, vehicle load, operational slots |
-| **ConsolidationEngine** | Groups orders by destination/time for route consolidation |
-| **ReverseLogistics** | Return cost calculation, return processing |
-| **OperationsAudit** | MCS decision logging with full formula breakdown |
-| **StateManager** | Single source of truth, virtual clock, role switching, demo scenarios |
-
----
-
-## 🚀 Quick Start
-
-```bash
-# Install dependencies (none required - vanilla JS)
-npm install
-
-# Start development server
+```powershell
+cd C:\Sites\RWB-Mesh
 npm run dev
-
-# Open http://localhost:3000
 ```
 
-### Production Build
-No build step required — pure ES modules, runs in any modern browser.
+Открыть http://localhost:3000. Остановить сервер: Ctrl+C. По умолчанию сервер слушает только 127.0.0.1. Для другого порта: `$env:PORT='3100'; npm run dev` в PowerShell. Интернет для работы сайта не нужен. После первого открытия Service Worker сохраняет локальные ресурсы; проверена полная перезагрузка без сети. Очистка данных браузера удалит локальное состояние. Доступны экспорт/импорт JSON и сброс; перед демо сохраните JSON — пресеты сбрасывают текущую сеть. Демо также сохраняет резервную копию текущей сессии для восстановления в настройках.
 
----
-
-## 🎮 Demo Scenarios (5 Mandatory)
-
-| Scenario | Description | Key Demo Points |
-|----------|-------------|-----------------|
-| **City Order** | Intra-city M1/M2 route | Zero transport cost M1, decision log |
-| **Intercity Order** | Perm → Ekaterinburg C2 | 5-order break-even, trunk utilization |
-| **Return Flow** | Customer return via Mesh | 20₽ vs 50₽ hub return, quarantine |
-| **Route Failure** | Vehicle breakdown | Auto-re-route in <2s, SLA preserved |
-| **Long Storage** | 30-day progressive tariff | 1×→1.5×→2× multiplier visualization |
-
-**Run Demo**: Switch to **Demo** tab → Select scenario → Click "Запустить"
-
----
-
-## 💰 Economic Model
-
-### Unit Economics (per order)
-| Component | Classic | Mesh |
-|-----------|---------|------|
-| Transport | 35₽ | 5₽ |
-| Storage | 20₽ | 15₽ |
-| Sorting | 10₽ | 8₽ |
-| Last Mile | 25₽ | 25₽ |
-| PVZ | 15₽ | 15₽ |
-| Returns | 10₽ | 6₽ |
-| IT | 5₽ | 5₽ |
-| **Total** | **120₽** | **79₽** |
-
-### PVZ Economics
-- **Payout**: 39₽ (6₽ receive + 15₽ storage + 18₽ pack)
-- **Cost**: 23₽ (15₽ ops + 8₽ shelf)
-- **Margin**: **16₽/order** ✅
-
-### Break-even Analysis
-- Base trip: 48₽ fixed + 8₽ × n orders + 40₽ × (k−1) stops + 6₽ × t wait minutes
-- **5 orders** = 48 + 40 + 40(k−1) → transport cost per order decreases with consolidation
-- Mesh saves **41₽/order** vs Classic at default tariffs
-
-> **Note:** These values come from `DEFAULT_TARIFFS` in `src/core/types.js`. Per the V5.0 directive, the economy is **not forced** to target numbers — documentation reflects actual implementation values.
-
----
-
-## 🎨 Design System
-
-### Colors (Wildberries Brand)
-| Role | Hex | Usage |
-|------|-----|-------|
-| Primary | `#CB11AB` | Fuchsia — primary actions, Mesh routes |
-| Secondary | `#5421A8` | Deep Purple — hubs, primary text |
-| Accent | `#A020B0` | Purple — C1 routes, accents |
-| Success | `#10B981` | Green — M1 routes, positive deltas |
-| Warning | `#F59E0B` | Amber — cautions |
-| Error | `#EF4444` | Red — blocked routes, negative deltas |
-
-### Typography
-- **Font**: System stack (`Inter`, `Manrope`, `Golos Text`, fallback)
-- **Scale**: 12px base, 4px spacing rhythm
-- **Weights**: 400 (regular), 500 (medium), 600 (semibold), 700 (bold), 800 (extrabold)
-
-### Components
-- **Buttons**: Primary/Secondary/Ghost/Danger/Success × 4 sizes
-- **Cards**: KPI cards with delta indicators, route candidate cards
-- **Badges**: Route types (M1/M2/C1/C2), Statuses, Severity
-- **Tables**: Sortable, responsive, numeric alignment
-- **Tabs**: Header tabs + sidebar navigation
-- **Modals/Drawers**: Accessible, focus-trapped
-- **Toasts**: Auto-dismiss, actionable
-- **Charts**: Canvas-based (no dependencies)
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+1` | Dashboard |
-| `Ctrl+2` | PVZ Workspace |
-| `Ctrl+3` | Seller Cabinet |
-| `Ctrl+4` | MCS Network |
-| `Ctrl+5` | Economics |
-| `Ctrl+6` | Demo |
-| `Space` | Play/Pause virtual time |
-| `Escape` | Close modal/drawer |
-
----
-
-## 🔧 Configuration
-
-### Tariffs (in kopecks)
-```javascript
-const DEFAULT_TARIFFS = {
-  // Trip economics
-  fixedTripCost: 48000,        // 480₽ base
-  variablePerParcel: 800,      // 8₽/parcel
-  extraStopCost: 4000,         // 40₽/stop
-  courierWaitPerMin: 600,      // 6₽/min
-
-  // PVZ operations
-  receiveFee: 600,             // 6₽
-  storagePerDay: 1500,         // 15₽/day
-  packFee: 1800,               // 18₽
-  transferFee: 1000,           // 10₽
-  partnerOpsCost: 1500,        // 15₽
-  partnerShelfPerDay: 800,     // 8₽/day
-
-  // Returns & damage
-  meshReturnCost: 2000,        // 20₽
-  hubReturnCost: 5000,         // 50₽
-  damageCost: 50000,           // 500₽
-
-  // Classic logistics (per order)
-  classicTransport: 3500,
-  classicStorage: 2000,
-  classicSorting: 1000,
-  classicLastMile: 2500,
-  classicPVZ: 1500,
-  classicReturns: 1000,
-  classicIT: 500,
-
-  // Mesh logistics (per order, no trip)
-  meshPlacement: 500,
-  meshStorage: 1500,
-  meshSorting: 800,
-  meshLastMile: 2500,
-  meshPVZ: 1500,
-  meshReturns: 600,
-  meshIT: 500,
-
-  // Limits
-  maxStorageDays: 60,
-  freeStorageDays: 7,
-  progressiveStorageMultiplier: 1.5,
-  pvzCapacity: 200,
-  vehicleCapacity: 500,
-  operationalSlots: 8,
-  meshHours: 4,
-  hubHours: 24,
-  slaHours: 24
-};
-```
-
----
-
-## 📊 API Reference
-
-### StateManager
-```javascript
-const state = StateManager.getInstance();
-await state.initialize();
-
-// Subscribe to changes
-state.subscribe((newState, prevState) => { ... });
-
-// Time control
-state.startClock();           // Start virtual time
-state.pauseClock();           // Pause
-state.stepTime(hours);        // Step forward
-state.setClockSpeed(10);      // 10x speed
-
-// Order lifecycle
-const order = state.createOrder({ productId, quantity, destinationPvzId, ... });
-state.routeOrder(orderId);
-state.processOrderAction(orderId, 'receive'|'store'|'pack'|'dispatch'|'issue'|'settle'|'return'|'cancel');
-
-// Demo scenarios
-state.runDemoScenario('city_order');
-state.runDemoScenario('intercity_order');
-// ...
-
-// Export/Import
-const json = state.exportState();
-state.importState(json);
-```
-
-### CostEngine
-```javascript
-// Trip cost: C = 48000 + 800*n + 4000*(k-1) + 600*t
-CostEngine.calculateTripCost(parcels, stops, waitMinutes, tariffs);
-
-// Progressive storage
-CostEngine.calculateStorageCost(quantity, days, tariffs);
-
-// PVZ economics
-CostEngine.calculatePvzPayout(tariffs);    // 39₽
-CostEngine.calculatePvzCost(tariffs);       // 23₽
-
-// Break-even
-CostEngine.calculateBreakEvenThreshold(tariffs);  // 5 orders
-```
-
-### RouteOptimizer
-```javascript
-const candidates = RouteOptimizer.findCandidates(order, pvzs, cities, tariffs);
-const selected = RouteOptimizer.selectRoute(candidates);
-```
-
-### DemandForecast
-```javascript
-const forecast = DemandForecast.forecastNextDay(history, seasonality, tariffs);
-// Returns: { method, nextDayForecast, conservativeEstimate, mae, bias, hitRate, allMethods }
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run tests (when implemented)
+```powershell
 npm test
+# Для браузерных тестов при новой установке потребуется интернет:
+npm ci
+npx playwright install chromium firefox
+node tests/v8-acceptance.cjs
 ```
 
-### Test Coverage Targets
-- [ ] CostEngine formulas
-- [ ] RouteOptimizer constraints
-- [ ] InventoryManager state transitions
-- [ ] DemandForecast accuracy
-- [ ] StateManager order lifecycle
-- [ ] Demo scenario execution
+Chrome/Edge проверяются, если установлены; WebKit в текущей среде отсутствует. В тестах ожидается запущенный сервер на 3000. Результаты и скриншоты — `evidence/browser/`. Тесты ядра работают без Playwright.
 
----
+## Что работает
 
-## 📁 Project Structure for Demo
+Семь разделов: обзор, ПВЗ, продавец, MCS, экономика, демонстрация, настройки. Приёмка, FIFO по нескольким партиям, резервирование, сборка, передача, транзит, прибытие, выдача, начисление, возврат, осмотр и вывоз. Остаток P=A+R+Q+D; входящий транзит учитывается отдельно. Дубли выдачи, резерва, начисления и возврата не повторяют списание. Журнал событий позволяет сверять остатки. Импорт проверяется до изменения состояния.
 
-```
-wb-mesh/
-├── index.html           # ← Open this in browser
-├── server.js            # ← Run: node server.js
-├── package.json
-├── README.md
-├── src/
-│   ├── core/
-│   │   ├── types.js
-│   │   ├── mcs-engine.js
-│   │   └── app-state.js
-│   └── ui/
-│       ├── design-system.css
-│       ├── components.js
-│       └── main.js
-└── Checkpoint-1-WB-Mesh/   # Research & prep docs
-```
+MCS сравнивает M1 (товар в ПВЗ покупателя), M2 (город между ПВЗ), C1 (город через хаб), C2 (межгород). Учитывает реальный доступный товар, габариты, вместимость, окно работы, операции за виртуальный час, простой и четыре экономических ограничения. Отсутствие вариантов — блокировка с объяснением. При сбое MCS новые заказы используют допустимую классику; без товара в нужном городе C2 не подменяется C1.
 
----
+Прогноз: naive, MA7, EWMA, seasonal naive/average; фиксированный seed, 60 дней истории, проверка rolling-origin на семи днях, WAPE/MAE/bias/RMSE. Это статистика, не нейросеть. Прогноз формирует дефицит/избыток и реальные задания пополнения, резервирует будущую вместимость подтверждённого попутного рейса. Такая перевозка имеет ненулевую стоимость. Сеть: 24 ПВЗ (18 Mesh), 3 хаба, 60 SKU, 8 категорий, 3 города, seed 20261126.
 
-## 🏆 Hackathon Checklist
+## Экономика
 
-### Checkpoint 1 (Research) ✅
-- [x] Business model documented
-- [x] Economics model validated
-- [x] Technical architecture designed
-- [x] Demo scenarios defined
+Все суммы ядра — целые копейки. Единственный тарифный источник `tariffs.yaml` записан в синтаксисе JSON, допустимом в YAML 1.2. Изменённый тариф применяется после перезагрузки; сохранённая сессия содержит свой тарифный снимок — для нового набора используйте сброс. Полная таблица — FINANCIAL_MODEL.md.
 
-### Checkpoint 2 (MVP Demo) 🎯
-- [x] Core calculation engine
-- [x] State management with virtual time
-- [x] Design system implementation
-- [x] All 5 demo scenarios
-- [x] MCS decision log with "Why this route?"
-- [x] Interactive network visualization
-- [x] Economic model simulator
-- [ ] Browser E2E tests
-- [ ] Performance profiling
+Контроль: n=40, d=10, k=1, t=0, возвраты 12%, локальная перепродажа 50%:
 
-### Final Demo (2 min) 🎯
-- [ ] Polished UI/UX
-- [ ] Smooth demo script execution
-- [ ] QR code to GitHub
-- [ ] Offline-capable (no API calls)
+| Статья | Классика, ₽ | Mesh, ₽ |
+|---|---:|---:|
+| Перевозка/размещение |24|22|
+| Хранение с приёмкой/сборкой |12|13|
+| Сортировка |14|10|
+| Последняя миля |24|20|
+| Выплата за выдачу и средний бонус |13|14|
+| Возвраты и потери |7|5,96|
+| IT |6|8|
+| **Итого** |**100**|**92,96**|
 
----
+Рейс C=480+8n+40(k−1)+6t рублей; на отправление округляем вверх до копейки, чтобы не занизить стоимость. Транспортный ноль при n=30, положительная экономия с 31. Порог всей цепочки 26 — другая метрика. Минимальная экономия 1 ₽ и сохранение маржи WB могут сделать фактический допуск строже. Кнопка «Как посчитано» показывает формулы и параметры.
 
-## 📝 License
+ПВЗ: обычная выдача 13 ₽ отдельно; дополнительный доход 14 ₽=2+1+10×1+1, затраты 7,50 ₽=3+0,35×10+1, дополнительный операционный результат 6,50 ₽. Это не чистая прибыль всего бизнеса. Средний бонус 1 ₽ используется на этапе планирования; при начислении заменяется фактическим бонусом/штрафом, без двойной выплаты. Пример контроля с усреднённым риском может отличаться от реального заказа с риском конкретного SKU.
 
-MIT — Free for hackathon, research, and educational use.
+Продавец: цена−закупка−комиссия−логистика−платное хранение; классический тариф 112 ₽, Mesh109 ₽ до 14 суток. WB: логистическая выручка−полная себестоимость; комиссия продавца показывается отдельно и не добавляется в логистическую маржу. Покупатель сохраняет цену/доставку и обещанный срок. Возврат — карантин; пригодности недостаточно, нужен локальный спрос, иначе задание вывоза. Возвратные расходы отражаются отдельными строками журнала.
 
----
+Масштаб: 80 млн×30%=24 млн; при 7,04 ₽ это 168,96 млн ₽ валового эффекта в месяц. В исходной презентации используется округлённое 7 ₽:168 млн, затем 25 млн расходов →143 млн/мес и 1,716 млрд/год. Эти 25 млн допустимы только как отдельные расходы, не уже включённые IT. По умолчанию отдельные расходы 0; NPV/ROI — сценарная рампа, не прогноз WB.
 
-## 🤝 Credits
+## Пять сценариев
 
-Built for **RWB × PGU "TOP AI START"** nomination  
-Deadline: **November 26, 2026**
+В «Демонстрации» по очереди: городской заказ→M2, межгород→C2, возврат→карантин, сбой→обоснованная блокировка при отсутствии товара, долгое хранение 40 сут→C1. Каждый пресет выполняет доменные операции, а не показывает записанный результат. Параметр партии 40→10 в «Экономике» меняет стоимость, M2→C1, схему и объяснение. «Режим жюри» увеличивает показатели. Сценарий выступления — DEMO_SCRIPT.md.
 
-**Team**: WB Mesh Control System contributors  
-**Stack**: Vanilla ES Modules, CSS Custom Properties, Canvas API — Zero dependencies
+## Структура и комплект
+
+`src/core/` — расчёты/состояние/MCS/остатки/прогноз/планирование; `src/ui/` — интерфейс; `server.js` — статический локальный сервер с разрешённым списком публичных файлов; `sw.js` — автономный кэш; `assets/` — локальные шрифты/графика; `scripts/` — воспроизводимые проверки и документы.
+
+В `deliverables/`: финансовые XLSX/JSON, CSV сравнения 2000 заказов, новый PPTX/PDF на 8 слайдов. Это **черновик для согласования команды**, исходная утверждённая презентация не менялась. В `evidence/`: источники, результаты тестов, скриншоты, инвентаризация скиллов. Матрицы: TZ-MATRIX.md, PRESENTATION-MATRIX.md. История до V8 сохранена в Git, тег `backup/pre-v8-20261126`; прежние версии документов — `docs/legacy-before-final-v8/`.
+
+## Ограничения и следующий шаг
+
+Локальный однопользовательский MVP без промышленной БД/транзакций, авторизации, платежей, GPS и аппаратных сканеров. Роли — представления, не границы доступа. Объединение независимых покупательских заказов в один оптимизированный рейс и полный VRP с 2-opt ещё не реализованы; M2 использует размер текущей партии. Прогнозные перемещения используют существующий рейс, но это не доказывает динамическую консолидацию всех заказов. Синхронизация офлайн-изменений с сервером отсутствует. Сравнение 2000 заказов — неизменяемый снимок, не нагрузочный тест конкурентной системы. Подробности в LIMITATIONS.md. Пилот:10 ПВЗ,1 хаб,30 дней,контрольная группа;≥5%снижения затрат и 99,5%точности — цели будущего эксперимента.

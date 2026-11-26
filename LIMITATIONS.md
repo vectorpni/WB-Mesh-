@@ -1,53 +1,16 @@
-# LIMITATIONS.md — WB Mesh Control System
+# Ограничения V8 — проверенные границы
 
-**Project:** WB Mesh Control System  
-**Branch:** `feature/v5-development`  
-**Status:** MVP (hackathon) — not production-ready
+1. Синтетические тарифы, запасы и спрос. Никакой заявленной точности на данных WB, реального пилота или официальной интеграции.
+2. Однопользовательское состояние в памяти и localStorage. Нет серверной БД, конкурентных транзакций, прав доступа и синхронизации нескольких устройств. Экспорт — локальный JSON. Роли не являются авторизацией.
+3. Нет платежей, реального GPS, сканеров, транспортных API и юридического механизма материальной ответственности.
+4. M2 оценивает текущую партию заказа. Полная консолидация независимых заказов, прогноз прибытия заказов, NN/2-opt и полноценный VRP не закрыты. Прогнозные перемещения и будущие попутные рейсы работают отдельно.
+5. Операционный лимит считает действия с партиями, а не каждую вещь; это явно объяснено в интерфейсе. Полная очередь обычной выдачи и stochastic ETA отсутствуют.
+6. Статистический прогноз: rolling-origin, горизонт 1 день, синтетический holdout7 дней. Выбор лучшего метода по этому периоду — внутренняя валидация, не независимый финальный blind test. Нет sparse-demand shrinkage. Не называть нейросетью.
+7. Бенчмарк 2000 заказов не уменьшает запасы и не выполняет конкурентный сквозной цикл. Он проверяет парные стоимости на общем снимке; наблюдаемый M2=0 сохранён.
+8. Глобальные партии уникальны, отрицательный импорт отклоняется; однако JSON-импорт не является промышленным защищённым протоколом. Схема сохранения V8 может отличаться от V7; старый JSON не гарантированно мигрирует.
+9. Возврат осматривается пользователем в MVP. Пригодность и локальный прогноз нужны для перепродажи, иначе формируется вывоз. Фактический вывоз требует подтверждённого рейса и окна, не «мгновенной телепортации».
+10. ROI/NPV — сценарные допущения. Реальные налоги, финансовые расходы и unit economics конкретного договора не проверены. Дополнительный результат ПВЗ не равен чистой прибыли всего предприятия.
+11. WebKit не установлен; Firefox/Chromium/Edge/Chrome проверены. Автоматическая проверка доступности не заменяет аудит с реальными ассистивными технологиями.
+12. Новая 8 слайдовая презентация — отдельный черновик. Текущая утверждённость иного найденного PDF/PPTX не устанавливается автоматически. Исходные отдельные логическая/экономическая модели, упомянутые внутри ТЗ как Ф 1/Ф 2, не найдены как однозначно идентифицированные файлы; доступно изложение в ТЗ и исправленном отчёте. Их отсутствующее содержание не придумано.
 
----
-
-## Scope limitations
-
-**Single-tenant local demo.** Runs in one browser tab on `localhost:3000`. No multi-user concurrency; role switching is a UI convenience, not production authentication/authorization.
-
-**No real Wildberries API.** The app is offline-capable with zero external network calls (Google Fonts removed). All cities, PVZs, orders, sellers, and tariffs are demo fixtures defined in source (`src/core/types.js`, `src/core/app-state.js`). No live WB order or inventory data is consumed or displayed as real.
-
-**No neural network.** `DemandForecast` uses classical statistical methods only: EWMA, moving average, seasonal naive, seasonal average — plus holdout evaluation (MAE, bias, WAPE, hit rate, false dispatches, misses). No model training or inference.
-
-**Calculation algorithm, not AI.** `RouteOptimizer`, `CostEngine`, and the `MCS` facade are deterministic rule-based algorithms. Results are reproducible for identical inputs.
-
----
-
-## Data limitations
-
-**Demo / fixture data.** Orders, products, sellers, PVZs, and cities are synthetic seed data for demonstration. They are presented as such and are not passed as real WB data (per the "no synthetic data as real" rule).
-
-**No persistent database.** State lives in memory; only tariffs are persisted to `localStorage` (key `wb-mesh-tariffs`). Refreshing the page loses orders/inventory unless re-seeded via demo scenarios.
-
-**No payment / financial integration.** Economics are model-based unit estimates (Classic vs Mesh per order), not real WB payouts or settlements.
-
----
-
-## Functionality not yet implemented
-
-- Quarantine auto-release is time-based (24h) and tied to virtual-clock steps; real wall-clock persistence is not implemented.
-- WAPE/bias holdout evaluation is computed in `DemandForecast.evaluate` and surfaced in the seller forecast panel, but not wired to auto-trigger replenishment or route decisions.
-- PVZ workspace actions (receive/store/pack/dispatch/issue/return) are wired to `StateManager` transitions; inventory reservation/decrement on store/pack is not fully enforced.
-- Network visualization capacity rings read live PVZ occupancy, but highlighted-route path drawing and trunk toggles are not yet implemented.
-
----
-
-## Economics limitations
-
-Tariffs (`DEFAULT_TARIFFS` in `src/core/types.js`) are model assumptions for the demo: Classic 120₽ / Mesh 79₽ per order. The JSDoc `TariffConfig` documentation was aligned to the implementation values; per the directive, the economy was **not forced** to target numbers.
-
-Four-sided economics and the federal scenario (80M orders, 30% Mesh) are documented analysis targets (Stage 3), not simulated at scale.
-
-No sensitive financial data or API keys are stored in source.
-
----
-
-## Verification
-- Unit tests: `node --test src/core/*.test.mjs` — 5 files, 0 failures
-- E2E: `node test-final.cjs` — 0 errors, all 7 tabs, modal/drawer hidden, role switching, 5 demo scenarios
-- Server: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` → 200
+Готовность: локальный демонстрационный MVP с проверенным ядром, не промышленный запуск. Все известные неполные функции сохранены в TASKS.md; публикация не выполнялась.

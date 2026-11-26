@@ -1,0 +1,8 @@
+{
+  "target": "src/core/cost-engine.js",
+  "condition": "savings >= t.minimumSavings",
+  "mutation": ">= replaced by <",
+  "mutatedExit": 1,
+  "restoredExit": 0,
+  "sourceRestored": true
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "repository": "coreyhaines31/marketingskills",
+    "local_path": "C:\\Users\\Павел\\.agents\\skills\\copywriting\\SKILL.md",
+    "url": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/main/skills/copywriting/SKILL.md",
+    "upstream_sha256": "86dc0466493e8ac59ab17a8f28fd1403e2a322921ed2a8f96b2d0c442ad99d01",
+    "local_sha256": "dea513c7a24c5eec72a1061ad02f7739406de0f40e61b39208b83a7b53d926a7",
+    "status": "downloaded",
+    "byte_identical": false
+  },
+  {
+    "repository": "alonw0/web-asset-generator",
+    "local_path": "C:\\Users\\Павел\\.agents\\skills\\web-asset-generator\\SKILL.md",
+    "url": "https://raw.githubusercontent.com/alonw0/web-asset-generator/main/skills/web-asset-generator/SKILL.md",
+    "upstream_sha256": "97c0a124fb5ad64a54dadfc98af52c30ec150df9e6782e332b22f6c9586dbad8",
+    "local_sha256": "bf8a656b5f8626f5479b6665d74fc73cf4edca54351ee34d4143a369df16fc21",
+    "status": "downloaded",
+    "byte_identical": false
+  },
+  {
+    "repository": "wondelai/skills",
+    "local_path": "C:\\Users\\Павел\\.agents\\skills\\jobs-to-be-done\\SKILL.md",
+    "url": "https://raw.githubusercontent.com/wondelai/skills/main/jobs-to-be-done/SKILL.md",
+    "upstream_sha256": "cc227aa837bda4ae0910324e52a90d338354501d005f7ef2fbd0cff9fd73aaf1",
+    "local_sha256": "6eca445d64db80618cb337505bec4f0e803ee3ff8e373d037674212532d431ca",
+    "status": "downloaded",
+    "byte_identical": false
+  },
+  {
+    "repository": "Weizhena/Deep-Research-skills",
+    "local_path": "C:\\Users\\Павел\\.codex\\skills\\research-deep\\SKILL.md",
+    "url": "https://raw.githubusercontent.com/Weizhena/Deep-Research-skills/master/skills/research-codex-en/research-deep/SKILL.md",
+    "upstream_sha256": "8fcc496fb1af291d30a9aa70e005f33cfbe08c8fff1942fb50ff7c9979d532cb",
+    "local_sha256": "a02a7e2e94f25ad5bcc692a46a6770ed78fb1479833100e1d84234e5a1ab8d2d",
+    "status": "downloaded",
+    "byte_identical": false
+  }
+]

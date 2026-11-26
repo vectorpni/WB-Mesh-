@@ -1,24 +1,22 @@
-# Скиллы и результаты применения
+# Реальное применение скиллов
 
-## Инвентаризация
-Файловый срез: 66 SKILL.md в домашнем .agents/skills, 11 в .codex/skills, 39 в кэше плагинов и 1 в другом рабочем каталоге .agents/skills. У Mesh Gate локальных .agents/skills и .codex/skills не обнаружено. Просмотрены имена и описания зарегистрированных пакетов. Наличие файла и регистрация в сессии различаются.
+Инвентаризация:116 файлов SKILL.md в глобальных .agents/.codex, кэше плагинов и доступной локальной .agents. Полные пути, размер и SHA256 — evidence/skills-inventory.json. Четыре указанных репозитория проверены через GitHub, реальные upstream SKILL.md сохранены в evidence/upstream-skills; evidence/skill-repository-check.json. Локальные файлы не идентичны upstream побайтно; обновление/идентичность не имитировались.
 
-В .agents/.skill-lock.json ровно 53 записи coreyhaines31/marketingskills. В lock также подтверждены wondelai/skills для jobs-to-be-done, alonw0/web-asset-generator, obra/superpowers, addyosmani/agent-skills, anthropics/skills и web-design-guidelines из vercel-labs/agent-skills. Поисковый модуль web-design здесь предоставлен как web-design-guidelines.
+| Скилл | Применение и доказательство |
+|---|---|
+|frontend-design|7 разных композиций, WB палитра, локальный GolosText, SVG сеть, responsive; src/ui/v8.css и скриншоты|
+|web-design-guidelines|Реальные локальные правила и references/command.md; focus/skip-link/labels/reduced-motion, проверка overflow и шапки|
+|web-asset-generator|Запущен настоящий generate_favicons.py из установленного скилла; локальные favicon/PWA иконки и валидация форматов|
+|webapp-testing|Реальный PlaywrightFirefox/Chromium/Edge/Chrome, сценарии/состояние/офлайн/скриншоты|
+|systematic-debugging|Воспроизведение дефектов до исправления:Map, reserve, import, FIFO, SLA, DOMready, header|
+|test-driven-development|Регрессионные тесты сначала падали, затем исправления; v8-critical-review.test.mjs и остальные|
+|code-review-and-quality|Независимые read-only ревизии ядра/источников, diffcheck, реальная mutation-проверка guard|
+|verification-before-completion|Команды и фактические результаты до утверждений/коммитов; evidence/unit-tests.txt и JSON|
+|research/research-deep|Реальный outline/fields, два независимых агента, JSON результаты и валидатор 5/5; research-v8/|
+|jobs-to-be-done|Функциональные задачи ПВЗ/продавца/WB/покупателя определяют действия и 4guards; вымышленных интервью нет|
+|Marketing Skills: product-marketing/copywriting|Ясная ценность, девиз, ограничения доказательств; сценарные цифры не названы фактами рынка|
+|xlsx|XLSX с формулами, источниками/цветами, фактический пересчёт Excel и проверка 651 формулы; LibreOffice скрипт несовместим с WindowsAF_UNIX|
+|pptx|Чтение исходного OOXML, реальные PowerPointPDF/PNG всехслайдов; новый отдельный 8 слайдовыйдек, office/validate.py PASS|
+|documents/pdf|Чтение входных DOCX/PDF; оригиналы не редактировались|
 
-В .codex найдены research, research-deep, research-report и вспомогательные research-add-*; web-researcher.toml и пять web-search-modules, включая general-web и academic-papers. Отдельный SKILL.md под точным названием research-codex-en и локальная запись об исходном репозитории Weizhena не найдены. Наличие одноимённых рабочих частей не доказывает их происхождение. Независимый запуск пакета Deep Research не проводился. Использованы методика из research, профиль источников general-web/academic-papers и веб-поиск по первичным материалам.
-
-| Связка | Применение | Результат |
-|---|---|---|
-| executing-plans | Резервная копия и контрольные гейты до публикации локального комплекта | Сохранён оригинал и проверяемая копия для изменений |
-| test-driven-development + systematic-debugging | Тесты до реализации, воспроизведение ошибок SLA, состояния, сборки и селекторов | Пограничные, аварийные и регрессионные прогоны |
-| code-review-and-quality + code-simplification | Проверка TЗ, вычислений, переходов, ввода и зависимостей. Единая формула рейса вместо повторения в событиях | Общий вычислительный модуль, прежние сценарии сохранены |
-| frontend-design + web-design-guidelines + jobs-to-be-done | Оператору сначала ответ, потом объяснение. Явные метки, фокус, состояния, маршрут и финансовые роли | Рабочий интерфейс с адаптивным блоком и проверкой ширины 390 px |
-| webapp-testing + verification-before-completion | Живой Playwright с системным Edge, проверка артефактов и повтор после исправления селектора | Браузерный прогон, Node, XLSX, PDF и ZIP |
-| analytics + ab-testing + competitor-profiling | Совпадение когорт, контрольная группа, первичные ссылки и границы аналогов | Методика пилота, контроль возвратов и тарифов |
-| product-marketing + copy-editing + sales-enablement | Сценарий пользователя, доказуемая метрика, презентационная речь и сложности | Позиционирование, DEFENSE.md, JURY.md |
-| xlsx | Редактируемые входы, явные формулы, пересчёт и контроль ошибок | 18 сценариев и 20 формул на сценарий. Сверка с JS и отдельная проверка изменения входа |
-| pptx + pdf + presentations | Редактируемые формы, экспорт того же PPTX, проверка каждого слайда | 7 слайдов, 70 редактируемых текстовых блоков |
-| web-asset-generator | Зависимости и назначение проверены | Локальное демо не требует новых ассетов, OG и PWA. Для маршрута использована разметка CSS/HTML |
-| Остальные маркетинговые | Оценены по заявленному назначению | Реклама, охват и продажи SaaS не определяют критерии этого кейса |
-
-Автоматизация Office выполнена через LibreOffice и его встроенный Python UNO. Обычный py интерпретатор не обнаружил, из рабочего каталога не разрешился pptxgenjs. Контроль PPTX выполнен повторным открытием в LibreOffice, структурной проверкой ZIP и рендером PDF средствами Windows. Схемный Python-валидатор скилла не запускался. Никакие компоненты повторно не устанавливались.
+Python-pptx использован как доступный генератор нового дека: установка pptxgenjs через npm не прошла DNS. Скилл PPTX не выдаётся за использование отсутствующего пакета. Визуальная проверка выполнена реальным инструментом view_image; дефекты таблицы/плотного текста в новомдеке исправлены и повторно отрендерены. Отдельные человеческие эксперты не привлекались: аудит проводился программными проверками и двумя явно обозначенными агентами.

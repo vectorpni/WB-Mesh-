@@ -72,7 +72,7 @@ export const orderOperations = {
       const elapsed=this.state.virtualTime.currentTime-o.createdAt;
       if(elapsed+o.routeEta>o.promisedHours)return fail('Обещанный срок недостижим: пересчитайте заказ');
       const hour=this.state.virtualTime.currentTime%24;
-      if(o.routeType==='M2'&&(hour<9||hour>=18))return fail('Рейс вне окна 09:00–17:00');
+      if(o.routeType==='M2'&&(hour<9||hour>17))return fail('Рейс вне окна 09:00–17:00');
       if(o.sourcePvzId!==o.destinationPvzId) {
         for(const [i,b]of o.reservation.batches.entries()){
           const r=inventory.transfer(o.sourcePvzId,o.destinationPvzId,b.batchId,b.quantity,`${o.id}:part:${i}`,{reservationId:o.id});if(!r.success)return r;
@@ -130,7 +130,7 @@ export const orderOperations = {
     const pvz=this.state.pvzs.get(pvzId);
     const hour=this.state.virtualTime.currentTime%24;
     if(!pvz || pvz.status==='down' || pvz.status==='paused')return fail('ПВЗ недоступен');
-    if(pvz.type==='mesh' && (hour<9 || hour>=18))return fail('Приёмка доступна с 09:00 до 17:00');
+    if(pvz.type==='mesh' && (hour<9 || hour>17))return fail('Приёмка доступна с 09:00 до 17:00');
     if(pvz.type==='mesh'){const load=operationLoad(pvz,this.state.virtualTime.currentTime,this.state.tariffs);if(!load.available)return fail(`Лимит операций за час ${load.used}/${load.limit}. Продвиньте виртуальное время.`);}
     const r=this.mcs.inventoryManager.receive(pvzId,productId,quantity,batchId,{units:product.units || 1,time:this.state.virtualTime.currentTime});
     if(r.success && !r.replayed) {recordOperation(pvz,this.state.virtualTime.currentTime,'RECEIVE');auditEvent(this.state,{id:batchId,type:'RECEIVE',pvzId,productId,quantity,timestamp:this.state.virtualTime.currentTime});this.notify();}
