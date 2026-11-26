@@ -1,6 +1,7 @@
 import { DEFAULT_TARIFFS } from './types.js';
 import { CostEngine } from './cost-engine.js';
 import { InventoryManager } from './inventory-engine.js';
+import {operationLoad} from './operation-policy.js';
 
 function fifoStock(node,order){
  let remaining=order.quantity;const allocations=[];
@@ -17,6 +18,7 @@ export class RouteOptimizer {
     const source=pvzs.get(order.sourcePvzId), dest=pvzs.get(order.destinationPvzId);
     if(!source || !dest || !InventoryManager.validQuantity(order.quantity)) return [];
     const intercity=source.cityId!==dest.cityId;
+    order={...order,baselineRoute:intercity?'C2':'C1',intercitySurcharge:intercity&&[source.cityId,dest.cityId].includes('kazan')?(this.tariffs.intercityKazanSurcharge ?? 3400):this.tariffs.intercitySurcharge};
     const candidates=[];
     const locals=[...pvzs.values()].filter(p=>p.cityId===dest.cityId && p.type==='mesh');
     for(const node of locals) {
@@ -39,10 +41,10 @@ export class RouteOptimizer {
   }
   build(type,order,source,dest,stock) {
     const t=this.tariffs, days=order.storageDays ?? 10;
-    const economics=this.costEngine.calculateOrder({route:type,batchSize:order.quantity,days,
+    const economics=new CostEngine({...this.tariffs,intercitySurcharge:order.intercitySurcharge}).calculateOrder({route:type,batchSize:order.quantity,days,
       stops:order.stops ?? 1,waitMinutes:order.waitMinutes ?? 0,price:order.price ?? 100000,
       purchaseCost:order.purchaseCost ?? 60000,commissionRate:order.commissionRate ?? .15,
-      promisedHours:order.promisedHours ?? t.slaHours,returnRate:order.returnRate ?? t.returnRate});
+      promisedHours:order.promisedHours ?? t.slaHours,returnRate:order.returnRate ?? t.returnRate,baselineRoute:order.baselineRoute});
     const c={type,totalCost:economics.total*order.quantity,unitCost:economics.total,
       sourcePvzId:source.id,destinationPvzId:dest.id,batchId:stock?.batchId,batches:stock?.allocations,
       etaHours:economics.etaHours,stops:type==='M1'?0:order.stops ?? 1,waitMinutes:order.waitMinutes ?? 0,
@@ -62,6 +64,7 @@ export class RouteOptimizer {
       const hour=(order.currentTime ?? 10)%24;
       if(type==='M2' && (hour<9 || hour>=18)) this.reject(c,'PEAK','Рейс вне окна приёмки 09:00–17:00');
       if(dest.operationalSlots<=0 || source.operationalSlots<=0) this.reject(c,'NO_SLOTS','Нет операционных слотов');
+      if(!operationLoad(dest,order.currentTime ?? 10,t).available||!operationLoad(source,order.currentTime ?? 10,t).available)this.reject(c,'PEAK_LOAD','Исчерпан лимит Mesh-операций за час');
     }
     if(c.etaHours>(order.promisedHours ?? t.slaHours)) this.reject(c,'BUYER_GUARD','Обещанный срок недостижим');
     if(order.failedRouteTypes?.includes(type)) this.reject(c,'ROUTE_DOWN','Рейс недоступен');

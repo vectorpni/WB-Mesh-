@@ -10,7 +10,7 @@ export function createWithdrawalTasks(state){
    const trip=transportOptions(state.scheduledTrips,p.id,hub,quantity,state.virtualTime.currentTime).sort((a,b)=>a.cost-b.cost)[0];
    state.withdrawals.push({id:`withdraw-${state.withdrawals.length+1}`,from:p.id,to:hub,batchId:item.batchId,
     productId:item.productId,quantity,status:'planned',departureTime:trip?.departureTime ?? null,tripId:trip?.id,
-    cost:trip?.cost ?? null,reason:'Предельный срок хранения 60 суток превышен; продажа заблокирована'});
+    cost:trip?.cost ?? null,reason:item.withdrawalReason||'Предельный срок хранения 60 суток превышен; продажа заблокирована',sellerPaid:Boolean(item.withdrawalReason),sellerId:state.products.get(item.productId)?.sellerId});
   }
  }
 }
@@ -26,7 +26,7 @@ export function progressWithdrawal(manager,id){
   if(r.success){t.status='in_transit';s.scheduledTrips.find(x=>x.id===t.tripId).booked+=t.quantity;}
  }else{
   r=manager.mcs.inventoryManager.arrive(t.to,t.id,s.virtualTime.currentTime);
-  if(r.success){t.status='completed';s.ledger.push({id:`${id}:cost`,type:'withdrawal',wbCost:t.cost,sellerAmount:0});}
+  if(r.success){t.status='completed';s.ledger.push({id:`${id}:cost`,type:'withdrawal',sellerId:t.sellerId,wbCost:t.cost,wbRevenue:t.sellerPaid?t.cost:0,sellerAmount:t.sellerPaid?-t.cost:0});}
  }
  if(r.success){auditEvent(s,{id:`${id}:${t.status}`,type:'EXPIRED_WITHDRAWAL',timestamp:s.virtualTime.currentTime,details:{...t}});manager.notify();}
  return r;

@@ -12,7 +12,7 @@ export function evaluateSimulation(state,sim){
 }
 export function simulationResults(state,sim){
  const {e,mesh:m,admitted,route,scale}=evaluateSimulation(state,sim);
- const investment=e.calculateInvestment({unitSavings:Math.max(0,m.savings),fixedMonthly:sim.overhead*100});
+ const investment=e.calculateInvestment({unitSavings:m.savings,fixedMonthly:sim.overhead*100});
  const c=m.classic.breakdown;
  const rows=Object.entries(m.breakdown).map(([key,value])=>{
   const cv=key==='placement'?c.transport:c[key];

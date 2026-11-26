@@ -25,6 +25,8 @@ test('P0: дополнительный результат ПВЗ — 14 мину
   const e = new CostEngine();
   assert.equal(e.calculatePvzPayout(10).total, 1400);
   assert.equal(e.calculatePvzCost(10).total, 750);
+  assert.equal(typeof e.calculateOperationalAdjustments,'function');
+  assert.equal(e.calculateOperationalAdjustments({assemblyMinutes:90,waitMinutes:15}).penalty,6000);
 });
 
 test('P0: отрицательные и нулевые партии не дают фиктивной стоимости', () => {

@@ -62,6 +62,10 @@ async function initApp() {
   // Start virtual clock (paused by default)
   // window.appState.startClock();
 
+  document.getElementById('roleSelect').value=window.appState.state.ui.role;
+  const initialTab=location.hash.slice(1)||window.appState.state.ui.activeTab;
+  if(['dashboard','pvz','seller','mcs','economics','demo','settings'].includes(initialTab)) switchTab(initialTab);
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(e=>console.warn('Автономный кэш недоступен:',e.message));
   console.log('[WB Mesh] Ready');
   showToast('Система готова', 'success');
 }
@@ -93,6 +97,7 @@ function setupEventListeners() {
   // Sidebar navigation
   document.querySelectorAll('.sidebar-link').forEach(link => {
     link.addEventListener('click', (e) => {
+      if(e.ctrlKey||e.metaKey)return;
       e.preventDefault();
       switchTab(link.dataset.tab);
       if (window.innerWidth < 1024) toggleSidebar(false);
@@ -204,6 +209,8 @@ function switchTab(tabName) {
   });
 
   window.currentTab = tabName;
+  window.appState.state.ui.activeTab=tabName;
+  history.replaceState(null,'','#'+tabName);
 
   // Tab-specific initialization
   onTabActivate(tabName);
@@ -310,7 +317,7 @@ function updateTimeControls() {
 
 function toggleTimePlayPause() {
   const state = window.appState.getState();
-  if (state.virtualTime.speed > 0) {
+  if (state.virtualTime.isRunning) {
     window.appState.pauseClock();
   } else {
     window.appState.startClock();
@@ -2713,7 +2720,8 @@ function showToast(message, type = 'info') {
 // INITIALIZE ON DOM READY
 // ============================================
 
-document.addEventListener('DOMContentLoaded', initApp);
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initApp, {once:true});
+else initApp();
 
 // Export for debugging
 window.WBMesh = {

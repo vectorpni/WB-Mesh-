@@ -25,7 +25,7 @@ export class DemandForecast {
     return results;
   }
   static forecastNextDay(history,seasonality=7) {
-    const evaluation=this.evaluate(history,Math.min(14,Math.max(1,Math.floor(history.length/4))));
+    const evaluation=this.evaluate(history,Math.min(7,Math.max(1,Math.floor(history.length/4))));
     const allMethods=this.methods(history);
     const method=Object.keys(evaluation).sort((a,b)=>evaluation[a].mae-evaluation[b].mae)[0] || 'naive';
     const mae=evaluation[method]?.mae ?? 0,forecast=allMethods[method];

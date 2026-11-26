@@ -1,3 +1,5 @@
+import {SCENARIOS,runScenario} from './demo-engine.js';
+import {extendDemoDataset} from './demo-dataset.js';
 import {createWithdrawalTasks} from './withdrawal-engine.js';
 import {stockProjection,reconcileStock,auditEvent} from './stock-audit.js';
 import {validateState,validateTariffs} from './state-validation.js';
@@ -135,6 +137,8 @@ class StateManager {
       sellers.set(seller.id, deepClone(seller));
     }
 
+    extendDemoDataset(cities,pvzs,products,sellers);
+
     for (const p of pvzs.values()) { p.status = 'active'; p.incoming = []; if(p.type === 'mesh') p.capacity = 400; }
 
     // Seed initial inventory
@@ -204,13 +208,15 @@ class StateManager {
       if (pvz.type !== PVZType.MESH && pvz.type !== PVZType.HUB) continue;
 
       // Add 3-5 random products to each mesh PVZ
-      const numProducts = productArray.length;
-      const shuffled = [...productArray].sort(() => seededRandom() - 0.5);
+      const seedProducts=pvz.type===PVZType.HUB?productArray:productArray.slice(0,4);
+      const numProducts = seedProducts.length;
+      const shuffled = [...seedProducts].sort(() => seededRandom() - 0.5);
 
       for (let i = 0; i < Math.min(numProducts, shuffled.length); i++) {
         const product = shuffled[i];
         const quantity = pvz.type === PVZType.HUB ? Math.floor(100/(product.units||1)) : Math.floor((pvz.id.endsWith('krasnov') || pvz.id.endsWith('greenwich') || pvz.id.endsWith('airport') ? 4 : 60)/(product.units||1));
-        const batchId = `batch-${product.id}-${generateId().slice(-6)}`;
+        if(quantity<=0)continue;
+        const batchId = `seed-${pvz.id}-${product.id}`;
 
         pvz.inventory.push({
           id: `inv-${generateId()}`,
@@ -237,9 +243,9 @@ class StateManager {
       const trend = (seededRandom() - 0.5) * 0.1; // slight trend
       const seasonality = 7; // weekly
 
-      for (let day = 0; day < 84; day++) { // 12 weeks
+      for (let day = 0; day < 60; day++) { // 60 historical synthetic days
         const weeklyPattern = 1 + 0.3 * Math.sin((day % seasonality) / seasonality * 2 * Math.PI);
-        const trendFactor = 1 + trend * day / 84;
+        const trendFactor = 1 + trend * day / 60;
         const noise = 1 + (seededRandom() - 0.5) * 0.4;
         const demand = Math.max(0, Math.round(baseDemand * weeklyPattern * trendFactor * noise));
         history.push(demand);
@@ -253,6 +259,10 @@ class StateManager {
    * @returns {Array<Object>}
    */
   createDemoScenarios() {
+    return SCENARIOS.map(s=>({...s,description:s.subtitle,steps:['Создать заказ','Рассчитать маршрут','Резерв и обработка','Проверить результат'],autoAdvance:false}));
+  }
+
+  legacyCreateDemoScenarios() {
     return [
       {
         id: 'city_order',
@@ -444,9 +454,20 @@ class StateManager {
   // ROLE & SELECTION
   // ============================================
 
+  setMcsAvailable(available) {
+    this.state.mcsStatus=available?'ready':'error';
+    for(const o of this.state.orders.values())if(['new','received'].includes(o.status)){
+      if(o.reservation){for(const b of o.reservation.batches)this.mcs.inventoryManager.releaseReservation(b.batchId,b.quantity,b.reservationKey||o.id);o.reservation=null;}
+      this.routeOrder(o.id);
+    }
+    auditEvent(this.state,{id:`mcs-${this.state.eventLog.length}`,type:'MCS_STATUS_CHANGED',timestamp:this.state.virtualTime.currentTime,details:{available}});
+    this.notify();
+  }
+
   setNodeStatus(id,status) {
     const node=this.state.pvzs.get(id); if(!node) return;
     node.status=status;
+    auditEvent(this.state,{id:`node-${this.state.eventLog.length}`,type:'NODE_STATUS_CHANGED',timestamp:this.state.virtualTime.currentTime,details:{id,status}});
     for(const o of this.state.orders.values()) if(['new','received'].includes(o.status)) {
       if(o.reservation) {for(const b of o.reservation.batches)this.mcs.inventoryManager.releaseReservation(b.batchId,b.quantity,b.reservationKey || o.id);o.reservation=null;}
       this.routeOrder(o.id);
@@ -482,8 +503,24 @@ class StateManager {
   reconcile() { return reconcileStock(this.state); }
 
   resolveReturn(batchId,resolution,inspection) {
+    const ledgerId=`${batchId}:disposition`;
+    if(this.state.ledger.some(x=>x.id===ledgerId))return {success:true,replayed:true};
+    const found=this.mcs.inventoryManager.getItem(batchId);
+    if(resolution==='resell' && inspection?.fit===true && found?.item.status==='quarantine') {
+      const forecast=DemandForecast.forecastNextDay(this.state.salesHistory.get(found.item.productId)||[]);
+      const available=this.mcs.inventoryManager.summary(found.pvz.id,found.item.productId).available;
+      if(forecast.nextDayForecast*2<available+found.item.quantity) {
+        found.item.withdrawalRequired=true;found.item.withdrawalReason='После осмотра недостаточно локального спроса на два дня';
+        createWithdrawalTasks(this.state);
+        auditEvent(this.state,{id:`inspection-${batchId}`,type:'RETURN_WITHDRAWAL',timestamp:this.state.virtualTime.currentTime,details:{batchId,forecast:forecast.nextDayForecast,available}});
+        this.notify();return {success:true,message:'Товар пригоден, но локального спроса недостаточно. Карантин сохранён; создано задание вывоза.'};
+      }
+    }
     const r=this.mcs.inventoryManager.resolveQuarantine(batchId,resolution,inspection);
-    if(r.success) {auditEvent(this.state,{id:`inspection-${batchId}`,type:`RETURN_${resolution.toUpperCase()}`,timestamp:this.state.virtualTime.currentTime,details:{batchId,inspection}});this.notify();}
+    if(r.success) {
+      if(resolution==='resell')this.state.ledger.push({id:ledgerId,type:'return_disposition',pvzId:found.pvz.id,sellerId:this.state.products.get(found.item.productId)?.sellerId,sellerAmount:-this.state.tariffs.localRestockCost*found.item.quantity,wbRevenue:this.state.tariffs.localRestockCost*found.item.quantity,wbCost:this.state.tariffs.localRestockCost*found.item.quantity});
+      auditEvent(this.state,{id:`inspection-${batchId}`,type:`RETURN_${resolution.toUpperCase()}`,timestamp:this.state.virtualTime.currentTime,details:{batchId,inspection}});this.notify();
+    }
     return r;
   }
 
@@ -523,7 +560,9 @@ class StateManager {
    * Run demo scenario
    * @param {string} scenarioId
    */
-  runDemoScenario(scenarioId) {
+  runDemoScenario(scenarioId) { return runScenario(this,scenarioId); }
+
+  legacyRunDemoScenario(scenarioId) {
     const scenario = this.state.demoScenarios.find(s => s.id === scenarioId);
     if (!scenario) return;
 
@@ -705,8 +744,10 @@ class StateManager {
     this.state = this.createInitialState();
     this.mcs = new MCS({pvzs:this.state.pvzs,cities:this.state.cities,tariffs:this.state.tariffs,orders:this.state.orders});
     this.notify();
-    return;
-    // Preserved V7 reset below; V8 uses full deterministic reset.
+  }
+
+  legacyResetDemo() {
+    // Preserved V7 reset for reference; active resetDemo above restores all V8 state.
 
     // Clear orders
     this.state.orders.clear();
@@ -765,6 +806,7 @@ class StateManager {
    */
   importState(json) {
     const data = JSON.parse(json);
+    if(data.tariffs?.schemaVersion===8)data.tariffs={...DEFAULT_TARIFFS,...data.tariffs};
     validateState(data);
     this.state.cities = new Map(data.cities);
     this.state.pvzs = new Map(data.pvzs);
@@ -777,6 +819,7 @@ class StateManager {
     this.state.ui = data.ui || this.state.ui;
     this.state.virtualTime.isRunning=false;
     this.state.mcsDecisionLog = data.mcsDecisionLog || [];
+    this.state.mcsStatus = data.mcsStatus==='error'?'error':'ready';
     this.state.financialSnapshots = data.financialSnapshots || [];
     this.state.ledger = data.ledger || [];
     this.state.scheduledTrips = data.scheduledTrips || [];

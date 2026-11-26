@@ -1,4 +1,6 @@
 /* Vector PNI / WB Mesh — light product workspace; all assets are local. */
+.app>.header{margin-left:0!important}
+.v-network-wrap{overflow:auto;max-width:100%;overscroll-behavior:contain}.v-network-wrap .v-network{min-width:650px}.v-table-wrap{overscroll-behavior:contain}.v-forecast text{font-family:var(--font-primary);font-size:12px;fill:#756080}
 .drawer-overlay{z-index:44!important}.sidebar{z-index:45!important}.header{z-index:46!important}.v8 .v-btn{touch-action:manipulation}
 .app{display:block!important;min-height:100vh}.header{position:fixed!important}.main{width:auto!important}.time-controls{display:flex!important;align-items:center}.status-indicator{display:inline-block!important;width:6px!important;height:6px!important;border-radius:50%;background:#139367}.sidebar{position:fixed!important;bottom:0}.sidebar-link>span:first-child{display:none}.sidebar-link{min-height:42px}.sidebar-link span{white-space:normal}
 @font-face{font-family:'Golos Text';src:url('/assets/fonts/GolosText.ttf') format('truetype');font-style:normal;font-weight:400 900;font-display:swap}

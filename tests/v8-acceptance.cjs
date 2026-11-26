@@ -14,9 +14,9 @@ async function navigate(page,tab){
  await page.waitForTimeout(80);
 }
 (async()=>{
- for(const [name,engine]of Object.entries({firefox,chromium,webkit})){
+ for(const [name,engine]of Object.entries({firefox,chromium,edge:chromium,chrome:chromium,webkit})){
   let browser;
-  try{browser=await engine.launch({headless:true});}catch(e){results.push({browser:name,status:'unavailable',reason:e.message.split('\n')[0]});continue;}
+  try{browser=await engine.launch({headless:true,...(name==='edge'?{channel:'msedge'}:name==='chrome'?{channel:'chrome'}:{})});}catch(e){results.push({browser:name,status:'unavailable',reason:e.message.split('\n')[0]});continue;}
   const row={browser:name,status:'pass',errors:[],layouts:[],scenarios:[],externalRequests:[]};
   try{
    const context=await browser.newContext({viewport:{width:1536,height:864}}),p=await context.newPage();
@@ -24,7 +24,7 @@ async function navigate(page,tab){
    p.on('console',m=>{if(m.type()==='error')row.errors.push(m.text());});
    p.on('request',r=>{if(!r.url().startsWith('http://localhost:3000')&&!r.url().startsWith('data:'))row.externalRequests.push(r.url());});
    await p.goto('http://localhost:3000',{waitUntil:'networkidle'});
-   for(const [width,height]of (name==='firefox'?sizes:[[1536,864]])){
+   for(const [width,height]of sizes){
     await p.setViewportSize({width,height});
     for(const tab of tabs){
      await navigate(p,tab);
@@ -33,6 +33,8 @@ async function navigate(page,tab){
      assert.ok(!/\b(?:NaN|undefined|null)\b/.test(text),`${name}/${tab}: invalid value`);
      const layout=await p.evaluate(()=>({width:innerWidth,document:document.documentElement.scrollWidth}));
      assert.ok(layout.document<=layout.width+2,`${name}/${width}/${tab} page overflow ${layout.document}`);
+     const header=await p.locator('header').boundingBox();
+     assert.ok(header.x>=0&&header.x+header.width<=width+2,`${name}/${width}: header clipped`);
      const screenshot=`evidence/browser/${name}-${width}x${height}-${tab}.png`;
      await p.screenshot({path:screenshot,fullPage:true});row.layouts.push({width,height,tab,screenshot,status:'pass'});
     }
@@ -50,8 +52,13 @@ async function navigate(page,tab){
    }
    const orderCount=await p.evaluate(()=>window.appState.state.orders.size);await p.reload({waitUntil:'networkidle'});
    assert.equal(await p.evaluate(()=>window.appState.state.orders.size),orderCount,'Reload preserves orders');
+   await p.evaluate(()=>navigator.serviceWorker.ready);
+   if(!await p.evaluate(()=>!!navigator.serviceWorker.controller))await p.reload({waitUntil:'networkidle'});
    await context.setOffline(true);await navigate(p,'pvz');await navigate(p,'seller');await navigate(p,'economics');
    assert.ok((await p.locator('#simulationResults').innerText()).includes('92,96'),'Offline calculations work');
+   await p.reload({waitUntil:'networkidle'});await navigate(p,'economics');
+   assert.ok((await p.locator('#simulationResults').innerText()).includes('92,96'),'Offline full reload works');
+   assert.equal(await p.evaluate(()=>window.appState.state.orders.size),orderCount,'Offline reload preserves orders');
    await context.setOffline(false);
    assert.equal(row.errors.length,0,'Browser errors');assert.equal(row.externalRequests.length,0,'External dependency');
    row.persistence='pass';row.offline='pass';

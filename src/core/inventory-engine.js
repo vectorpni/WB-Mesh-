@@ -30,10 +30,10 @@ export class InventoryManager {
     const f=this.getItem(batchId);
     if(!f) return {success:false,error:'Batch not found'};
     if(!InventoryManager.validQuantity(quantity) || !orderId) return {success:false,error:'Некорректный резерв'};
-    f.item.reservations ||= {};
-    if(f.item.reservations[orderId]===quantity) return {success:true,replayed:true};
-    if(f.item.reservations[orderId]) return {success:false,error:'Заказ уже зарезервирован'};
+    if(f.item.reservations?.[orderId]===quantity) return {success:true,replayed:true};
+    if(f.item.reservations?.[orderId]) return {success:false,error:'Заказ уже зарезервирован'};
     if(InventoryManager.available(f.item)<quantity) return {success:false,error:'Insufficient quantity'};
+    f.item.reservations ||= {};
     f.item.reservations[orderId]=quantity;
     return {success:true};
   }
@@ -44,6 +44,7 @@ export class InventoryManager {
     const id=orderId || (ids.length===1 ? ids[0] : null);
     if(!id || f.item.reservations[id]!==quantity) return {success:false,error:'Резерв не найден'};
     delete f.item.reservations[id];
+    if(f.item.daysStored>60 && InventoryManager.reserved(f.item)===0){f.item.status='quarantine';f.item.withdrawalRequired=true;}
     return {success:true};
   }
   receive(pvzId,productId,quantity,batchId,options={}) {

@@ -5,6 +5,17 @@ import {InventoryManager} from './inventory-engine.js';
 import {CostEngine} from './cost-engine.js';
 
 const make=m=>m.createOrder({productId:'prod-1',quantity:2,sourcePvzId:'pvz-perm-plus',destinationPvzId:'pvz-perm-plus'});
+test('Убыточная экономика сохраняет отрицательные потоки NPV, без обнуления потерь',()=>{
+ const e=new CostEngine(),loss=e.calculateInvestment({unitSavings:-100});
+ assert.ok(loss.benefits<0);assert.ok(loss.npv<e.calculateInvestment({unitSavings:0}).npv);
+});
+test('Возврат без локального спроса остаётся в карантине и получает задание вывоза',()=>{
+ const m=new StateManager();m.mcs.inventoryManager.processReturn('pvz-perm-plus','no-demand',2,'customer','prod-1');
+ m.state.salesHistory.set('prod-1',Array(60).fill(0));
+ const r=m.resolveReturn('return-no-demand','resell',{fit:true});
+ assert.ok(r.success);assert.equal(m.mcs.inventoryManager.getItem('return-no-demand').item.status,'quarantine');
+ assert.ok(m.state.withdrawals.some(t=>t.batchId==='return-no-demand'));
+});
 test('Ревью P0: номер партии однозначен во всей сети',()=>{
  const m=new StateManager();assert.ok(m.receiveSupply('pvz-perm-plus','prod-1',2,'same-batch').success);
  assert.equal(m.receiveSupply('pvz-perm-krasnov','prod-1',2,'same-batch').success,false);

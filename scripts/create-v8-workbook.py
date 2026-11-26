@@ -51,7 +51,8 @@ for r in [['Объём Mesh',"='Параметры'!B17*'Параметры'!B18
 f=sheet('Прогноз',['День','Факт','Прогноз сезонный','Абс. ошибка','Смещение'])
 forecast=data['forecast']['seasonalNaive']
 for i,(a,v)in enumerate(zip(forecast['actuals'],forecast['predictions']),2):f.append([i-1,a,v,f'=ABS(C{i}-B{i})',f'=C{i}-B{i}'])
-f.append(['WAPE','=IF(SUM(B2:B15)=0,"Нет продаж",SUM(D2:D15)/SUM(B2:B15))']);f.append(['MAE','=AVERAGE(D2:D15)']);f.append(['Смещение','=AVERAGE(E2:E15)']);f.append(['История синтетическая. Прогнозы выгружены из DemandForecast.evaluate; rolling-origin, горизонт 1 день.'])
+end=1+len(forecast['actuals'])
+f.append(['WAPE',f'=IF(SUM(B2:B{end})=0,"Нет продаж",SUM(D2:D{end})/SUM(B2:B{end}))']);f.append(['MAE',f'=AVERAGE(D2:D{end})']);f.append(['Смещение',f'=AVERAGE(E2:E{end})']);f.append(['История синтетическая. Прогнозы выгружены из DemandForecast.evaluate; rolling-origin, горизонт 1 день.'])
 inv=sheet('Инвестиции',['Месяц','Доля Mesh','Заказы','Выгода, ₽','OPEX, ₽','CAPEX, ₽','Поток, ₽','Дисконтированный поток'])
 for i,cf in enumerate(data['investment']['cashflows'],2):inv.append([cf['month'],cf['share'],f"='Параметры'!B17*B{i}",f"=C{i}*'Себестоимость'!D9",f"='Параметры'!B19*IF(A{i}<=3,0.3,1)",cf['capex']/100,f'=D{i}-E{i}-F{i}',f'=G{i}/(1+0.2)^(A{i}/12)'])
 inv.append(['NPV','=SUM(H2:H37)-90000000']);inv.append(['CAPEX точек и I0 — сценарные 15 тыс. ₽ на узел и 90 млн ₽; ТЗ §4.6. Не прогноз WB.'])

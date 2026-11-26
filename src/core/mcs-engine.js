@@ -48,7 +48,7 @@ export class CapacityManager {
    */
   canAccept(pvzId, quantity) {
     const pvz = this.pvzs.get(pvzId);
-    if (!pvz) return false;
+    if (!pvz || !InventoryManager.validQuantity(quantity)) return false;
     return pvz.occupiedCapacity + quantity <= pvz.capacity;
   }
 
@@ -56,7 +56,7 @@ export class CapacityManager {
    * Check if vehicle can fit quantity
    */
   canFitInVehicle(quantity) {
-    return quantity <= this.tariffs.vehicleCapacity;
+    return InventoryManager.validQuantity(quantity) && quantity <= this.tariffs.vehicleCapacity;
   }
 
   /**
@@ -159,13 +159,15 @@ export class ReverseLogistics {
    */
   processReturn(order, decision) {
     const returnCost = this.calculateReturnCost('mesh', order.quantity);
-    const damageCost = this.tariffs.damageCost * 0.02; // 2% damage rate
+    const damageCost = Math.round(this.tariffs.damageCost * this.tariffs.meshLossRate * order.quantity);
+    const price=order.economics?.seller?.price ?? order.price;
+    if(!Number.isFinite(price))throw new Error('Для возврата нужна цена товара, а не стоимость логистики');
 
     return {
       returnCost,
       expectedDamage: damageCost,
       decision,
-      refundAmount: order.routeCost - returnCost - damageCost
+      refundAmount: price*order.quantity
     };
   }
 }

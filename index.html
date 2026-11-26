@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="src/ui/design-system.css">
   <link rel="stylesheet" href="src/ui/v8.css">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icons/favicon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="preload" href="assets/fonts/GolosText.ttf" as="font" type="font/ttf" crossorigin>
   <meta name="theme-color" content="#CB11AB">
   <meta name="description" content="WB Mesh — исследовательский MVP команды Vector PNI. Экономика и управление распределённой логистикой.">
       </head>
@@ -87,16 +89,16 @@
       <nav class="sidebar-nav">
         <ul class="sidebar-list">
           <li class="sidebar-section">Главное</li>
-          <li><a href="#" class="sidebar-link active" data-tab="dashboard"><span class="icon-home"></span><span>Обзор</span></a></li>
+          <li><a href="#dashboard" class="sidebar-link active" data-tab="dashboard"><span class="icon-home"></span><span>Обзор</span></a></li>
           <li class="sidebar-section">Операции</li>
-          <li><a href="#" class="sidebar-link" data-tab="pvz"><span class="icon-building"></span><span>ПВЗ Рабочее место</span></a></li>
-          <li><a href="#" class="sidebar-link" data-tab="seller"><span class="icon-user"></span><span>Кабинет продавца</span></a></li>
-          <li><a href="#" class="sidebar-link" data-tab="mcs"><span class="icon-truck"></span><span>MCS Сеть</span></a></li>
+          <li><a href="#pvz" class="sidebar-link" data-tab="pvz"><span class="icon-building"></span><span>ПВЗ Рабочее место</span></a></li>
+          <li><a href="#seller" class="sidebar-link" data-tab="seller"><span class="icon-user"></span><span>Кабинет продавца</span></a></li>
+          <li><a href="#mcs" class="sidebar-link" data-tab="mcs"><span class="icon-truck"></span><span>MCS Сеть</span></a></li>
           <li class="sidebar-section">Аналитика</li>
-          <li><a href="#" class="sidebar-link" data-tab="economics"><span class="icon-chart"></span><span>Экономическая модель</span></a></li>
-          <li><a href="#" class="sidebar-link" data-tab="demo"><span class="icon-play"></span><span>Демо-сценарии</span></a></li>
+          <li><a href="#economics" class="sidebar-link" data-tab="economics"><span class="icon-chart"></span><span>Экономическая модель</span></a></li>
+          <li><a href="#demo" class="sidebar-link" data-tab="demo"><span class="icon-play"></span><span>Демо-сценарии</span></a></li>
           <li class="sidebar-section">Настройки</li>
-          <li><a href="#" class="sidebar-link" data-tab="settings"><span class="icon-settings"></span><span>Тарифы и конфиг</span></a></li>
+          <li><a href="#settings" class="sidebar-link" data-tab="settings"><span class="icon-settings"></span><span>Тарифы и конфиг</span></a></li>
         </ul>
       </nav>
       <div class="sidebar-footer">
@@ -108,7 +110,7 @@
     <!-- MAIN CONTENT -->
     <main class="main" id="main" role="main">
       <!-- DASHBOARD TAB -->
-      <section class="tab-panel active" id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+      <section class="tab-panel active" id="panel-dashboard" role="region" aria-label="Обзор">
         <div class="page-header">
           <h1 class="page-title">Обзор системы</h1>
           <p class="page-subtitle">Ключевые метрики Mesh-логистики в реальном времени</p>
@@ -171,7 +173,7 @@
       </section>
 
       <!-- PVZ WORKSPACE TAB -->
-      <section class="tab-panel" id="panel-pvz" role="tabpanel" aria-labelledby="tab-pvz">
+      <section class="tab-panel" id="panel-pvz" role="region" aria-label="Рабочее место ПВЗ">
         <div class="page-header">
           <div class="flex justify-between items-start">
             <div>
@@ -268,7 +270,7 @@
       </section>
 
       <!-- SELLER CABINET TAB -->
-      <section class="tab-panel" id="panel-seller" role="tabpanel" aria-labelledby="tab-seller">
+      <section class="tab-panel" id="panel-seller" role="region" aria-label="Кабинет продавца">
         <div class="page-header">
           <div class="flex justify-between items-start">
             <div>
@@ -360,7 +362,7 @@
       </section>
 
       <!-- MCS NETWORK TAB -->
-      <section class="tab-panel" id="panel-mcs" role="tabpanel" aria-labelledby="tab-mcs">
+      <section class="tab-panel" id="panel-mcs" role="region" aria-label="Сеть MCS">
         <div class="page-header">
           <div class="flex justify-between items-start">
             <div>
@@ -436,7 +438,7 @@
       </section>
 
       <!-- ECONOMICS MODEL TAB -->
-      <section class="tab-panel" id="panel-economics" role="tabpanel" aria-labelledby="tab-economics">
+      <section class="tab-panel" id="panel-economics" role="region" aria-label="Экономическая модель">
         <div class="page-header">
           <div class="flex justify-between items-start">
             <div>
@@ -530,7 +532,7 @@
         </section>
 
       <!-- DEMO TAB -->
-      <section class="tab-panel" id="panel-demo" role="tabpanel" aria-labelledby="tab-demo">
+      <section class="tab-panel" id="panel-demo" role="region" aria-label="Демонстрация">
         <div class="page-header">
           <div class="flex justify-between items-start">
             <div>
@@ -583,7 +585,7 @@
       </section>
 
       <!-- SETTINGS TAB -->
-      <section class="tab-panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings">
+      <section class="tab-panel" id="panel-settings" role="region" aria-label="Настройки">
         <div class="page-header">
           <div class="flex justify-between items-start">
             <div>

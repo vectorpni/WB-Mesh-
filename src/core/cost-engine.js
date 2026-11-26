@@ -32,7 +32,7 @@ export class CostEngine {
     let total = 0;
     const daily = [];
     for (let day = 1; day <= Math.ceil(days); day++) {
-      const factor = day <= 14 ? 1 : day <= 30 ? 1.5 : 2.5;
+      const factor = day <= 14 ? 1 : day <= 30 ? this.tariffs.storageMidMultiplier : this.tariffs.storageLateMultiplier;
       const rate = Math.round(baseRate * factor * Math.min(1, days - day + 1));
       total += rate;
       daily.push({ day, rate, cumulative: total });
@@ -53,6 +53,18 @@ export class CostEngine {
     const t = this.tariffs;
     const breakdown = { ops: t.partnerOpsCost, shelf: Math.round(days * t.partnerShelfPerDay), risk: t.partnerRiskCost };
     return { total: Object.values(breakdown).reduce((a,b) => a+b,0), breakdown };
+  }
+
+  calculateOperationalAdjustments({assemblyMinutes=0,waitMinutes=0,route='M2',hour=10}={}) {
+    numberInRange(assemblyMinutes,'минуты сборки');numberInRange(waitMinutes,'простой');
+    const t=this.tariffs;
+    const fastBonus=assemblyMinutes<=t.assemblySlaMinutes && !(hour>=18&&hour<21)?t.fastAssemblyBonus:0;
+    const noWaitBonus=route==='M2'&&waitMinutes===0?t.noWaitBonus:0;
+    const late=Math.max(0,assemblyMinutes-t.assemblySlaMinutes,waitMinutes-t.courierMaxWaitMinutes);
+    const penalty=late>0?Math.min(t.latePenaltyMax,t.latePenaltyBase+Math.ceil(late)*t.latePenaltyPerMinute):0;
+    const bonus=fastBonus+noWaitBonus;
+    return {bonus,penalty,net:bonus-t.pvzBonus-penalty,fastBonus,noWaitBonus,
+      formula:'Фактический бонус − базовый бонусный пул − min(60 ₽; 10 ₽ + 2 ₽ × минут просрочки). Пул заменяется, не прибавляется повторно.'};
   }
 
   calculateClassicCost(days = 10, route = 'C1', returnRate = this.tariffs.returnRate) {
@@ -95,11 +107,11 @@ export class CostEngine {
 
   calculateOrder({route = 'M2', batchSize = 40, days = 10, stops = 1, waitMinutes = 0,
     returnRate = this.tariffs.returnRate, resaleShare = this.tariffs.resaleShare, price = 100000,
-    purchaseCost = 60000, commissionRate = .15, buyerDelivery = 0, promisedHours = 60} = {}) {
+    purchaseCost = 60000, commissionRate = .15, buyerDelivery = 0, promisedHours = 60,baselineRoute} = {}) {
     for (const [name,value] of Object.entries({price,purchaseCost,buyerDelivery})) numberInRange(value,name);
     numberInRange(commissionRate, 'комиссия', 0, 1);
     const t = this.tariffs;
-    const classicRoute = route === 'C2' ? 'C2' : 'C1';
+    const classicRoute = baselineRoute || (route === 'C2' ? 'C2' : 'C1');
     const classic = this.calculateClassicCost(days, classicRoute, returnRate);
     const isMesh = route === 'M1' || route === 'M2';
     const variable = isMesh ? this.calculateMeshVariableCost(days, route, returnRate, resaleShare) : classic;
@@ -110,16 +122,16 @@ export class CostEngine {
     const pvzRevenue = isMesh ? this.calculatePvzPayout(days).total : 0;
     const pvzCost = isMesh ? this.calculatePvzCost(days).total : 0;
     const extraDays = Math.max(0, days - 14);
-    const classicFee = t.sellerClassicFee + Math.round(extraDays * 140);
-    const meshFee = t.sellerMeshFee + Math.round(Math.min(extraDays,16)*180 + Math.max(0,days-30)*300);
-    const fee = isMesh ? meshFee : classicFee + (route === 'C2' ? t.intercitySurcharge : 0);
+    const classicFee = t.sellerClassicFee + Math.round(extraDays * t.sellerClassicStorage) + (classicRoute==='C2'?t.intercitySurcharge:0);
+    const meshFee = t.sellerMeshFee + Math.round(Math.min(extraDays,16)*t.sellerMeshStorageMid + Math.max(0,days-30)*t.sellerMeshStorageLate);
+    const fee = isMesh ? meshFee : classicFee;
     const commission = Math.round(price * commissionRate);
     const sellerBefore = price - purchaseCost - commission - classicFee;
     const sellerAfter = price - purchaseCost - commission - fee;
     const etaHours = {M1:1,M2:6,C1:40,C2:60}[route];
     const savings = classic.total - total;
     return { route, total, breakdown, classic, trip, savings, days, batchSize, etaHours,
-      parameters:{route,batchSize,days,stops,waitMinutes,returnRate,resaleShare,price,purchaseCost,commissionRate,promisedHours},
+      parameters:{route,baselineRoute:classicRoute,batchSize,days,stops,waitMinutes,returnRate,resaleShare,price,purchaseCost,commissionRate,promisedHours},
       formula: 'Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)',
       wb: { cost: total, revenue: fee, margin: fee-total, baselineMargin: classicFee-classic.total },
       pvz: { ordinaryReward: t.classicPVZ, revenue: pvzRevenue, cost: pvzCost, result: pvzRevenue-pvzCost },
@@ -138,7 +150,8 @@ export class CostEngine {
   }
 
   calculateInvestment({unitSavings=704,monthlyOrders=80000000,fixedMonthly=0,initialInvestment=9000000000,nodeInvestment=1500000,annualDiscount=.2,months=36}={}) {
-    for(const [key,value]of Object.entries({unitSavings,monthlyOrders,fixedMonthly,initialInvestment,nodeInvestment,annualDiscount,months}))numberInRange(value,key);
+    numberInRange(unitSavings,'unitSavings',-1e12,1e12);
+    for(const [key,value]of Object.entries({monthlyOrders,fixedMonthly,initialInvestment,nodeInvestment,annualDiscount,months}))numberInRange(value,key);
     let npv=-initialInvestment,balance=-initialInvestment,benefits=0,costs=initialInvestment,nodes=0,payback=null;
     const cashflows=[];
     for(let month=1;month<=months;month++){

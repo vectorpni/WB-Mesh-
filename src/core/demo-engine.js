@@ -9,6 +9,7 @@ export const SCENARIOS=[
 
 export function runScenario(manager,id) {
  const scenario=SCENARIOS.find(x=>x.id===id);if(!scenario)throw new Error('Сценарий не найден');
+ manager.lastDemoBackup=manager.exportState();
  manager.resetDemo();const s=manager.getState();
  let source='pvz-perm-plus',dest=source,quantity=2,days=10;
  const excludeStock=city=>{

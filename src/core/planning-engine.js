@@ -32,7 +32,7 @@ export function transportOptions(trips,from,to,quantity,now=10){
 }
 export function buildTransferPlan(state){
  const inventory=new InventoryManager(state.pvzs),plans=[];
- for(const product of state.products.values())for(const city of state.cities.values()){
+ for(const product of [...state.products.values()].filter(p=>p.meshEligible!==false))for(const city of state.cities.values()){
   const nodes=[...state.pvzs.values()].filter(p=>p.type==='mesh'&&p.cityId===city.id&&p.status==='active');
   const needs=nodes.map(p=>{const stock=inventory.summary(p.id,product.id);return {p,stock,...DemandForecast.recommend(localHistory(state,product.id,p.id),stock.available,stock.inTransit,p.capacity)};});
   for(const recv of needs.filter(n=>n.deficit>0))for(const donor of needs.filter(n=>n.surplus>0&&n.p.id!==recv.p.id)){

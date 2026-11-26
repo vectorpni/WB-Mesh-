@@ -1,6 +1,7 @@
 import {escapeHtml,chip,statusName} from './view-utils.js';
 export function networkSvg(state,route=null,selectedId=null) {
  const cities=[...state.cities.values()],positions=new Map();
+ const height=230+Math.ceil(Math.max(...cities.map(c=>[...state.pvzs.values()].filter(p=>p.cityId===c.id&&p.type!=='hub').length))/2)*97;
  let nodes='',edges='';
  for(let ci=0;ci<cities.length;ci++){
   const city=cities[ci],cx=175+ci*340;
@@ -25,5 +26,5 @@ export function networkSvg(state,route=null,selectedId=null) {
    highlight=`<polyline points="${pts.filter(Boolean).map(p=>`${p.x},${p.y}`).join(' ')}" class="v-selected-edge"/>`;
   }
  }
- return `<svg class="v-network" viewBox="0 0 1030 400" role="img" aria-label="Схема логистической сети трёх городов"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".6" fill="#ded5e9"/></pattern></defs><rect width="1030" height="400" fill="url(#dots)"/>${edges}${highlight}${nodes}</svg>`;
+ return `<div class="v-network-wrap"><svg class="v-network" viewBox="0 0 1030 ${height}" role="group" aria-label="Схема логистической сети трёх городов"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".6" fill="#ded5e9"/></pattern></defs><rect width="1030" height="${height}" fill="url(#dots)"/>${edges}${highlight}${nodes}</svg></div>`;
 }
