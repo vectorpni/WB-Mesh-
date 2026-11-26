@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {StateManager} from './app-state.js';
 import {InventoryManager, CostEngine, DemandForecast} from './mcs-engine.js';
+import {runScenario, SCENARIOS} from './demo-engine.js';
+import {reconcileStock} from './stock-audit.js';
+import {transportOptions,buildTransferPlan,scheduleTransfer,progressTransfer} from './planning-engine.js';
 
 function order(m, params={}) {return m.createOrder({productId:'prod-1',quantity:2,sourcePvzId:'pvz-perm-plus',destinationPvzId:'pvz-perm-plus',...params});}
 function complete(m,o) {for(const a of ['receive','store','pack','dispatch','arrive','issue','settle']) assert.ok(m.processOrderAction(o.id,a).success,a);}
@@ -69,4 +72,41 @@ test('Сезонный прогноз проверяется по каждому
 });
 test('В прогнозе есть наивный baseline и воспроизводимая проверочная выборка',()=>{
  const h=Array.from({length:70},(_,i)=>i%7+1);const r=DemandForecast.evaluate(h,14);assert.ok(r.naive);assert.equal(r.naive.actuals.length,14);assert.equal(r.naive.predictions.length,14);
+});
+
+for(const scenario of SCENARIOS)test(`Демо ${scenario.name}: два воспроизводимых прогона`,()=>{
+ const m=new StateManager();const a=runScenario(m,scenario.id),b=runScenario(m,scenario.id);assert.ok(a.passed);assert.ok(b.passed);assert.equal(a.route,b.route);assert.deepEqual(a.stock,b.stock);
+});
+test('Импорт отрицательного остатка отклоняется атомарно',()=>{
+ const m=new StateManager(),before=m.exportState(),data=JSON.parse(before);data.pvzs[0][1].inventory[0].quantity=-1;
+ assert.throws(()=>m.importState(JSON.stringify(data)));assert.equal(m.exportState(),before);
+});
+test('Журнал движений восстанавливает остатки и обнаруживает ручную порчу',()=>{
+ const m=new StateManager(),o=order(m);complete(m,o);assert.ok(reconcileStock(m.state).success);
+ m.state.pvzs.get('pvz-perm-plus').inventory[0].quantity++;assert.equal(reconcileStock(m.state).success,false);
+});
+
+test('Подтверждённый попутный рейс учитывает ненулевую дополнительную стоимость',()=>{
+ const trips=[{id:'t',status:'planned',nodes:['a','b'],departureTime:13,capacity:40,booked:10,additionalFixed:500,additionalPerUnit:300}];
+ assert.equal(transportOptions(trips,'a','b',10,10)[0].cost,3500);
+ assert.equal(transportOptions(trips,'a','b',31,10).length,0);
+ assert.equal(transportOptions(trips,'b','a',10,10).length,0);
+ assert.equal(transportOptions(trips,'a','b',10,14).length,0);
+});
+test('План по прогнозу резервирует будущую вместимость и реально перемещает товар',()=>{
+ const m=new StateManager();const recv=m.state.pvzs.get('pvz-perm-krasnov');recv.inventory=[];recv.occupiedCapacity=0;
+ m.state.scheduledTrips=[{id:'t',status:'planned',nodes:['pvz-perm-plus','pvz-perm-krasnov'],departureTime:13,capacity:80,booked:0,additionalFixed:500,additionalPerUnit:300}];
+ m.state.salesHistory.set('prod-1',Array(84).fill(12));
+ const p=buildTransferPlan(m.state).find(p=>p.productId==='prod-1'&&p.available);assert.ok(p);assert.ok(p.benefit>0);
+ const r=scheduleTransfer(m,p.id);assert.ok(r.success);assert.equal(progressTransfer(m,r.transfer.id).success,false);
+ m.stepTime(3);assert.ok(progressTransfer(m,r.transfer.id).success);assert.ok(progressTransfer(m,r.transfer.id).success);
+ assert.ok(m.mcs.inventoryManager.summary(recv.id,'prod-1').available>0);assert.equal(m.state.ledger.at(-1).sellerAmount,0);
+});
+
+test('Скидка продавцу не должна ухудшать маржу WB в MCS',()=>{
+ const e=new CostEngine(),r=e.calculateOrder({batchSize:27});assert.ok(r.savings>100);assert.equal(r.guards.wb,false);
+});
+test('Габариты S/M/L занимают 1/3/8 мест',()=>{
+ const m=new StateManager(),p=m.state.pvzs.get('pvz-perm-krasnov');
+ const before=p.occupiedCapacity;assert.ok(m.receiveSupply(p.id,'prod-2',2,'size-test').success);assert.equal(p.occupiedCapacity,before+6);
 });

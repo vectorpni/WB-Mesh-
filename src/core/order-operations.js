@@ -1,11 +1,12 @@
 import { generateId } from './types.js';
 import { InventoryManager } from './inventory-engine.js';
 import { CostEngine } from './cost-engine.js';
+import {auditEvent} from './stock-audit.js';
 
 const fail = error => ({success:false,error});
 function event(manager,order,type,details={}) {
   const entry={id:`${order.id}:${type}:${order.events.length}`,orderId:order.id,type,timestamp:manager.state.virtualTime.currentTime,details};
-  order.events.push(entry);manager.state.eventLog ||= [];manager.state.eventLog.push(entry);
+  order.events.push(entry);auditEvent(manager.state,entry);
 }
 
 export const orderOperations = {
@@ -108,7 +109,7 @@ export const orderOperations = {
     if(!pvz || pvz.status==='down' || pvz.status==='paused')return fail('ПВЗ недоступен');
     if(pvz.type==='mesh' && (hour<9 || hour>=18))return fail('Приёмка доступна с 09:00 до 17:00');
     const r=this.mcs.inventoryManager.receive(pvzId,productId,quantity,batchId,{units:product.units || 1,time:this.state.virtualTime.currentTime});
-    if(r.success && !r.replayed) {this.state.eventLog ||= [];this.state.eventLog.push({id:batchId,type:'RECEIVE',pvzId,productId,quantity,timestamp:this.state.virtualTime.currentTime});this.notify();}
+    if(r.success && !r.replayed) {auditEvent(this.state,{id:batchId,type:'RECEIVE',pvzId,productId,quantity,timestamp:this.state.virtualTime.currentTime});this.notify();}
     return r;
   }
 };

@@ -124,7 +124,7 @@ export class CostEngine {
       pvz: { ordinaryReward: t.classicPVZ, revenue: pvzRevenue, cost: pvzCost, result: pvzRevenue-pvzCost },
       seller: { price, purchaseCost, commission, classicFee, fee, before: sellerBefore, after: sellerAfter },
       buyer: { price, delivery: buyerDelivery, baselineDelivery: buyerDelivery, promisedHours, etaHours },
-      guards: { wb: savings >= t.minimumSavings, pvz: pvzRevenue-pvzCost > 0,
+      guards: { wb: savings >= t.minimumSavings && fee-total >= classicFee-classic.total, pvz: pvzRevenue-pvzCost > 0,
         seller: sellerAfter >= sellerBefore, buyer: etaHours <= promisedHours && etaHours <= (classicRoute === 'C2' ? 60 : 40) } };
   }
 

@@ -1,3 +1,4 @@
+import { renderWorkspace } from './workspace-view.js';
 /**
  * WB Mesh Control System — Main Application Entry Point
  * Initializes state, binds UI, handles navigation and reactive updates
@@ -31,18 +32,14 @@ async function initApp() {
   window.appState = StateManager.getInstance();
   await window.appState.initialize();
 
-  // Restore persisted tariffs from localStorage
   try {
-    const stored = localStorage.getItem('wb-mesh-tariffs');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      const state = window.appState.getState();
-      Object.assign(state.tariffs, parsed);
-      window.appState.setTariffs(state.tariffs);
-    }
-  } catch (e) {
-    console.warn('Could not restore tariffs from localStorage:', e);
-  }
+    const stored = localStorage.getItem('wb-mesh-state-v8');
+    if(stored) window.appState.importState(stored);
+  } catch(e) { console.warn('Сохранённое состояние отклонено:',e.message); }
+  window.appState.subscribe(() => {
+    try { localStorage.setItem('wb-mesh-state-v8',window.appState.exportState()); }
+    catch(e) { console.warn('Локальное сохранение недоступно:',e.message); }
+  });
 
   // Auto-select default seller so the seller cabinet renders data on load
   const s0 = window.appState.getState();
@@ -106,6 +103,7 @@ function setupEventListeners() {
   document.getElementById('citySelect').addEventListener('change', (e) => {
     window.appState.setSelectedCity(e.target.value || null);
     populatePvzSelector(e.target.value);
+    renderAll();
   });
 
   // PVZ selector
@@ -211,31 +209,7 @@ function switchTab(tabName) {
   onTabActivate(tabName);
 }
 
-function onTabActivate(tabName) {
-  switch (tabName) {
-    case 'dashboard':
-      renderDashboard();
-      break;
-    case 'pvz':
-      renderPvzWorkspace();
-      break;
-    case 'seller':
-      renderSellerCabinet();
-      break;
-    case 'mcs':
-      renderMcsNetwork();
-      break;
-    case 'economics':
-      renderEconomics();
-      break;
-    case 'demo':
-      renderDemoPanel();
-      break;
-    case 'settings':
-      renderSettings();
-      break;
-  }
-}
+function onTabActivate(tabName) { renderWorkspace(window.appState,tabName,switchTab); }
 
 // ============================================
 // SELECTOR POPULATION
@@ -305,32 +279,10 @@ function populatePvzSelector(cityId) {
 // ============================================
 
 function updateRoleUI(role) {
-  // Hide/show tabs based on role
-  const tabs = document.querySelectorAll('#headerTabs .tab');
-  const sidebarLinks = document.querySelectorAll('.sidebar-link');
-
-  const roleTabs = {
-    owner: ['dashboard', 'pvz', 'seller', 'mcs', 'economics', 'demo'],
-    pvz_operator: ['pvz', 'dashboard'],
-    seller: ['seller', 'dashboard'],
-    mcs_dispatcher: ['mcs', 'dashboard'],
-    analyst: ['economics', 'dashboard'],
-    jury: ['demo', 'dashboard', 'economics', 'mcs']
-  };
-
-  const allowed = roleTabs[role] || ['dashboard'];
-
-  tabs.forEach(tab => {
-    tab.style.display = allowed.includes(tab.dataset.tab) ? '' : 'none';
-  });
-  sidebarLinks.forEach(link => {
-    link.style.display = allowed.includes(link.dataset.tab) ? '' : 'none';
-  });
-
-  // Switch to first allowed tab if current not allowed
-  if (!allowed.includes(window.currentTab)) {
-    switchTab(allowed[0]);
-  }
+  document.body.classList.toggle('jury-mode',role === 'jury');
+  if(role === 'seller') switchTab('seller');
+  else if(role === 'pvz_operator') switchTab('pvz');
+  else if(role === 'jury') switchTab('demo');
 }
 
 // ============================================
@@ -341,14 +293,14 @@ function updateTimeDisplay() {
   const state = window.appState.getState();
   const vt = state.virtualTime;
   const days = Math.floor(vt.currentTime / 24);
-  const hours = vt.currentTime % 24;
+  const hours = Math.floor(vt.currentTime % 24);
   document.getElementById('timeDisplay').textContent = `День ${days}, ${String(hours).padStart(2, '0')}:00`;
 }
 
 function updateTimeControls() {
   const state = window.appState.getState();
   const vt = state.virtualTime;
-  const isRunning = vt.speed > 0;
+  const isRunning = vt.isRunning;
 
   document.getElementById('timePlay').style.display = isRunning ? 'none' : '';
   document.getElementById('timePause').style.display = isRunning ? '' : 'none';
@@ -371,16 +323,8 @@ function toggleTimePlayPause() {
 // ============================================
 
 function renderAll() {
-  updateTimeDisplay();
-  updateTimeControls();
-  updateMcsStatus();
-  renderDashboard();
-  renderPvzWorkspace();
-  renderSellerCabinet();
-  renderMcsNetwork();
-  renderEconomics();
-  renderDemoPanel();
-  renderSettings();
+  updateTimeDisplay(); updateTimeControls(); updateMcsStatus();
+  renderWorkspace(window.appState,window.currentTab,switchTab);
 }
 
 function updateMcsStatus() {

@@ -3,21 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WB Mesh Control System</title>
+  <title>WB Mesh — Vector PNI</title>
   <link rel="stylesheet" href="src/ui/design-system.css">
+  <link rel="stylesheet" href="src/ui/v8.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#CB11AB">
+  <meta name="description" content="WB Mesh — исследовательский MVP команды Vector PNI. Экономика и управление распределённой логистикой.">
       </head>
 <body>
   <div class="app">
     <!-- HEADER -->
     <header class="header" id="header">
       <div class="header-left">
-        <button class="btn btn-ghost btn-icon sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <button class="btn btn-ghost btn-icon sidebar-toggle" id="sidebarToggle" aria-label="Открыть навигацию">
           <span class="icon-menu"></span>
         </button>
         <div class="logo" id="logo">
           <span class="logo-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span>
           <span class="logo-text">WB Mesh</span>
-          <span class="logo-badge">Control System</span>
+          <span class="logo-badge">Управление сетью</span>
         </div>
         <div class="header-divider"></div>
         <nav class="header-tabs" id="headerTabs" role="tablist">
@@ -49,7 +53,7 @@
         <div class="role-switcher">
           <label class="sr-only" for="roleSelect">Роль</label>
           <select id="roleSelect" class="form-select form-select-sm">
-            <option value="owner">👑 Владелец</option>
+            <option value="pvz_owner">👑 Владелец</option>
             <option value="pvz_operator">📦 Оператор ПВЗ</option>
             <option value="seller">🏪 Продавец</option>
             <option value="mcs_dispatcher">🚚 Диспетчер MCS</option>
@@ -78,11 +82,11 @@
     </header>
 
     <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Основная навигация">
       <nav class="sidebar-nav">
         <ul class="sidebar-list">
           <li class="sidebar-section">Главное</li>
-          <li><a href="#" class="sidebar-link active" data-tab="dashboard"><span class="icon-home"></span><span>Дашборд</span></a></li>
+          <li><a href="#" class="sidebar-link active" data-tab="dashboard"><span class="icon-home"></span><span>Обзор</span></a></li>
           <li class="sidebar-section">Операции</li>
           <li><a href="#" class="sidebar-link" data-tab="pvz"><span class="icon-building"></span><span>ПВЗ Рабочее место</span></a></li>
           <li><a href="#" class="sidebar-link" data-tab="seller"><span class="icon-user"></span><span>Кабинет продавца</span></a></li>
@@ -95,8 +99,8 @@
         </ul>
       </nav>
       <div class="sidebar-footer">
-        <div class="version-info">v1.0.0-hackathon</div>
-        <div class="build-info">RWB × PGU TOP AI START</div>
+        <div class="version-info">WB Mesh V8.0</div>
+        <div class="build-info">Vector PNI · ТОП ИИ СТАРТ</div>
       </div>
     </aside>
 

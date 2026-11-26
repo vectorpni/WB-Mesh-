@@ -1,3 +1,5 @@
+import {stockProjection,reconcileStock,auditEvent} from './stock-audit.js';
+import {validateState,validateTariffs} from './state-validation.js';
 /**
  * WB Mesh — Application State Management
  * Single source of truth for the entire application
@@ -120,7 +122,11 @@ class StateManager {
 
     // Initialize products
     for (const product of DEMO_PRODUCTS.values()) {
-      products.set(product.id, deepClone(product));
+      const copy=deepClone(product);
+      copy.units=product.id==='prod-2'?3:product.id==='prod-3'?8:1;
+      copy.meshEligible=copy.units<=3;
+      copy.purchaseCost=Math.round(product.price*.6);
+      products.set(product.id,copy);
     }
 
     // Initialize sellers
@@ -174,6 +180,13 @@ class StateManager {
       financialSnapshots: [],
 
       // Notifications
+      openingStock: stockProjection(pvzs),
+      stockCheckpoint: stockProjection(pvzs),
+      scheduledTrips: [...cities.values()].flatMap((city,i) => {
+        const nodes=[...pvzs.values()].filter(p=>p.type==='mesh' && p.cityId===city.id);
+        return nodes.length>1 ? [{id:`existing-${city.id}`,kind:'backhaul',status:'planned',nodes:[city.hubId,...nodes.map(p=>p.id),city.hubId],departureTime:13,capacity:80,booked:0,additionalFixed:500,additionalPerUnit:300}] : [];
+      }),
+      transfers: [],
       eventLog: [],
       ledger: [],
       notifications: []
@@ -194,19 +207,20 @@ class StateManager {
 
       for (let i = 0; i < Math.min(numProducts, shuffled.length); i++) {
         const product = shuffled[i];
-        const quantity = pvz.type === PVZType.HUB ? 100 : 60;
+        const quantity = pvz.type === PVZType.HUB ? Math.floor(100/(product.units||1)) : Math.floor((pvz.id.endsWith('krasnov') || pvz.id.endsWith('greenwich') || pvz.id.endsWith('airport') ? 4 : 60)/(product.units||1));
         const batchId = `batch-${product.id}-${generateId().slice(-6)}`;
 
         pvz.inventory.push({
           id: `inv-${generateId()}`,
           productId: product.id,
           quantity,
+          units: product.units || 1,
           batchId,
           receivedAt: this.state?.virtualTime?.currentTime || 0,
           status: 'available',
           daysStored: Math.floor(seededRandom() * 10)
         });
-        pvz.occupiedCapacity += quantity;
+        pvz.occupiedCapacity += quantity*(product.units || 1);
       }
     }
   }
@@ -383,6 +397,7 @@ class StateManager {
 
   startVirtualClock() {
     if (this.virtualTimeTimer) return;
+    if(this.state.virtualTime.speed <= 0) this.state.virtualTime.speed=1;
     this.state.virtualTime.isRunning = true;
     this.virtualTimeTimer = setInterval(() => {
       if (this.state.virtualTime.speed > 0) {
@@ -433,6 +448,16 @@ class StateManager {
   // ROLE & SELECTION
   // ============================================
 
+  setNodeStatus(id,status) {
+    const node=this.state.pvzs.get(id); if(!node) return;
+    node.status=status;
+    for(const o of this.state.orders.values()) if(['new','received'].includes(o.status)) {
+      if(o.reservation) {this.mcs.inventoryManager.releaseReservation(o.reservation.batchId,o.quantity,o.id);o.reservation=null;}
+      this.routeOrder(o.id);
+    }
+    this.notify();
+  }
+
   setRole(role) {
     this.state.ui.role = role;
     this.notify();
@@ -458,7 +483,16 @@ class StateManager {
     this.notify();
   }
 
+  reconcile() { return reconcileStock(this.state); }
+
+  resolveReturn(batchId,resolution,inspection) {
+    const r=this.mcs.inventoryManager.resolveQuarantine(batchId,resolution,inspection);
+    if(r.success) {auditEvent(this.state,{id:`inspection-${batchId}`,type:`RETURN_${resolution.toUpperCase()}`,timestamp:this.state.virtualTime.currentTime,details:{batchId,inspection}});this.notify();}
+    return r;
+  }
+
   setTariffs(tariffs) {
+    validateTariffs(tariffs);
     this.state.tariffs = tariffs;
     this.mcs = new MCS({
       pvzs: this.state.pvzs,
@@ -735,6 +769,7 @@ class StateManager {
    */
   importState(json) {
     const data = JSON.parse(json);
+    validateState(data);
     this.state.cities = new Map(data.cities);
     this.state.pvzs = new Map(data.pvzs);
     this.state.products = new Map(data.products);
@@ -744,9 +779,14 @@ class StateManager {
     this.state.tariffs = data.tariffs || deepClone(DEFAULT_TARIFFS);
     this.state.virtualTime = data.virtualTime || this.state.virtualTime;
     this.state.ui = data.ui || this.state.ui;
+    this.state.virtualTime.isRunning=false;
     this.state.mcsDecisionLog = data.mcsDecisionLog || [];
     this.state.financialSnapshots = data.financialSnapshots || [];
     this.state.ledger = data.ledger || [];
+    this.state.scheduledTrips = data.scheduledTrips || [];
+    this.state.transfers = data.transfers || [];
+    this.state.openingStock = data.openingStock || {};
+    this.state.stockCheckpoint = data.stockCheckpoint || stockProjection(this.state.pvzs);
     this.state.eventLog = data.eventLog || [];
     this.state.demoScenarios = this.createDemoScenarios();
     this.mcs = new MCS({

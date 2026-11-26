@@ -1,0 +1,11 @@
+const {firefox}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{const b=await firefox.launch({headless:true});try{const p=await b.newPage({viewport:{width:1536,height:864}});
+ await p.goto('http://localhost:3000',{waitUntil:'networkidle'});
+ await p.locator('.sidebar-link[data-tab="economics"]').click();
+ await p.locator('#simBatch').waitFor({timeout:3000});
+ assert.ok((await p.locator('#panel-economics').innerText()).includes('92,96'));
+ await p.locator('#simBatch').fill('10');await p.locator('#simBatch').dispatchEvent('input');
+ assert.ok((await p.locator('#simDecision').innerText()).includes('C1'));
+ console.log('V8 economics interaction PASS');
+}finally{await b.close();}})().catch(e=>{console.error(e);process.exit(1)});
