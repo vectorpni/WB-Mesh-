@@ -1,0 +1,9 @@
+from pathlib import Path
+p=Path('src/core/mcs-engine.js');s=p.read_text(encoding='utf-8');a=s.index('export class DemandForecast');b=s.index('export class CapacityManager',a)
+s=s[:a]+"export { DemandForecast } from './forecast-engine.js';\nimport { DemandForecast } from './forecast-engine.js';\n\n"+s[b:];p.write_text(s,encoding='utf-8')
+p=Path('src/core/cost-engine.test.mjs');s=p.read_text(encoding='utf-8').replace('t.packFee + t.transferFee','t.packFee + t.pvzBonus').replace('t.partnerShelfPerDay * 3 + t.transferFee','t.partnerShelfPerDay * 3 + t.partnerRiskCost');p.write_text(s,encoding='utf-8')
+p=Path('src/core/inventory-manager.test.mjs');s=p.read_text(encoding='utf-8').replace("assert.strictEqual(item.quantity, 15);", "assert.strictEqual(item.quantity, 20);\n  assert.strictEqual(InventoryManager.available(item), 15);").replace("assert.strictEqual(item.status, 'reserved');", "assert.strictEqual(item.status, 'available');").replace("assert.strictEqual(item.reservedForOrderId, 'order-1');", "assert.strictEqual(item.reservations['order-1'], 5);").replace('assert.strictEqual(item.reservedForOrderId, null);',"assert.strictEqual(Object.keys(item.reservations).length, 0);")
+p.write_text(s,encoding='utf-8')
+p=Path('src/core/route-optimizer.test.mjs');s=p.read_text(encoding='utf-8').replace('operationalSlots: 8, inventory: []','operationalSlots: 8, inventory: [{productId: \'p1\', batchId: \'b1\', quantity: 70, status: \'available\'}]').replace('operationalSlots: 6, inventory: []','operationalSlots: 6, inventory: [{productId: \'p1\', batchId: \'b2\', quantity: 70, status: \'available\'}]').replace("destinationPvzId: 'pvz-perm-krasnov', quantity: 1", "destinationPvzId: 'pvz-perm-krasnov', quantity: 40")
+p.write_text(s,encoding='utf-8')
+p=Path('src/core/app-state.test.mjs');s=p.read_text(encoding='utf-8').replace('Array.from(s.pvzs.keys())[0]',"'pvz-perm-plus'").replace("productId: 'p1'","productId: 'prod-1'");p.write_text(s,encoding='utf-8')

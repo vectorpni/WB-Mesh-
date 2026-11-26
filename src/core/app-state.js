@@ -18,7 +18,8 @@ import {
   deepClone
 } from './types.js';
 
-import { MCS } from './mcs-engine.js';
+import { MCS, DemandForecast } from './mcs-engine.js';
+import { orderOperations } from './order-operations.js';
 
 // ============================================
 // SEEDED RNG — reproducible demo data (Stage 13)
@@ -102,27 +103,32 @@ class StateManager {
     /** @type {Map<string, Object>} */
     const salesHistory = new Map();
 
+    setDemoSeed(0x5EED_CAFE);
+
     // Initialize cities
-    for (const city of DEMO_CITIES) {
+    for (const city of DEMO_CITIES.values()) {
       cities.set(city.id, deepClone(city));
     }
 
     // Initialize PVZs
-    for (const pvz of DEMO_PVZS) {
+    for (const pvz of DEMO_PVZS.values()) {
       const pvzClone = deepClone(pvz);
-      pvzClone.inventory = pvzClone.inventory || [];
+      pvzClone.inventory = [];
+      pvzClone.occupiedCapacity = 0;
       pvzs.set(pvzClone.id, pvzClone);
     }
 
     // Initialize products
-    for (const product of DEMO_PRODUCTS) {
+    for (const product of DEMO_PRODUCTS.values()) {
       products.set(product.id, deepClone(product));
     }
 
     // Initialize sellers
-    for (const seller of DEMO_SELLERS) {
+    for (const seller of DEMO_SELLERS.values()) {
       sellers.set(seller.id, deepClone(seller));
     }
+
+    for (const p of pvzs.values()) { p.status = 'active'; p.incoming = []; if(p.type === 'mesh') p.capacity = 400; }
 
     // Seed initial inventory
     this.seedInitialInventory(pvzs, products);
@@ -142,7 +148,7 @@ class StateManager {
 
       // Virtual time
       virtualTime: {
-        currentTime: 0, // hours since epoch
+        currentTime: 10, // virtual day starts in reception window
         currentDay: 0,
         speed: 0, // 0 = paused, 1 = real-time, 10 = 10x, etc.
         isRunning: false
@@ -168,6 +174,8 @@ class StateManager {
       financialSnapshots: [],
 
       // Notifications
+      eventLog: [],
+      ledger: [],
       notifications: []
     };
   }
@@ -181,12 +189,12 @@ class StateManager {
       if (pvz.type !== PVZType.MESH && pvz.type !== PVZType.HUB) continue;
 
       // Add 3-5 random products to each mesh PVZ
-      const numProducts = Math.floor(seededRandom() * 3) + 3;
+      const numProducts = productArray.length;
       const shuffled = [...productArray].sort(() => seededRandom() - 0.5);
 
       for (let i = 0; i < Math.min(numProducts, shuffled.length); i++) {
         const product = shuffled[i];
-        const quantity = Math.floor(seededRandom() * 20) + 5;
+        const quantity = pvz.type === PVZType.HUB ? 100 : 60;
         const batchId = `batch-${product.id}-${generateId().slice(-6)}`;
 
         pvz.inventory.push({
@@ -370,6 +378,9 @@ class StateManager {
   // VIRTUAL TIME
   // ============================================
 
+  startClock() { return this.startVirtualClock(); }
+  pauseClock() { return this.pauseVirtualClock(); }
+
   startVirtualClock() {
     if (this.virtualTimeTimer) return;
     this.state.virtualTime.isRunning = true;
@@ -399,6 +410,7 @@ class StateManager {
   }
 
   stepTime(hours = 1) {
+    if (!Number.isFinite(hours) || hours < 0 || hours > 8760) throw new RangeError('Некорректный шаг времени');
     this.state.virtualTime.currentTime += hours;
     this.state.virtualTime.currentDay = Math.floor(this.state.virtualTime.currentTime / 24);
     this.ageInventory(hours);
@@ -466,178 +478,12 @@ class StateManager {
    * @param {Object} params
    * @returns {Object}
    */
-  createOrder({ productId, quantity, destinationPvzId, sourcePvzId, sellerId }) {
-    const order = {
-      id: generateId('order'),
-      productId,
-      quantity,
-      sourcePvzId: sourcePvzId || destinationPvzId,
-      destinationPvzId,
-      sellerId: sellerId || this.state.products.get(productId)?.sellerId,
-      status: OrderStatus.NEW,
-      createdAt: this.state.virtualTime.currentTime,
-      events: [{
-        type: 'created',
-        timestamp: this.state.virtualTime.currentTime,
-        details: { productId, quantity, destinationPvzId }
-      }]
-    };
-    this.state.orders.set(order.id, order);
-    this.notify();
-    return order;
-  }
-
-  /**
-   * Route order through MCS
-   * @param {string} orderId
-   * @returns {Object}
-   */
-  routeOrder(orderId) {
-    const order = this.state.orders.get(orderId);
-    if (!order) return { success: false, error: 'Order not found' };
-
-    this.state.mcsStatus = 'calculating';
-    this.notify();
-
-    // Simulate async calculation
-    setTimeout(() => {
-      const result = this.mcs.routeOrder(order);
-      order.routeType = result.selected?.type || RouteType.BLOCKED;
-      order.routeCost = result.selected?.totalCost || 0;
-      order.routeEta = result.selected?.etaHours || 0;
-      order.classicCost = result.selected?.marketplaceEconomics?.classicCost || 0;
-      order.pvzReward = result.selected?.pvzReward || 0;
-
-      order.events.push({
-        type: 'routed',
-        timestamp: this.state.virtualTime.currentTime,
-        details: { routeType: order.routeType, cost: order.routeCost, reason: result.reason }
-      });
-
-      this.state.mcsStatus = 'ready';
-      this.notify();
-    }, 100);
-
-    return { success: true };
-  }
-
-  /**
-   * Process order action (state transition)
-   * @param {string} orderId
-   * @param {string} action
-   * @returns {Object}
-   */
-  processOrderAction(orderId, action) {
-    const order = this.state.orders.get(orderId);
-    if (!order) return { success: false, error: 'Order not found' };
-
-    const validTransitions = {
-      [OrderStatus.NEW]: ['receive', 'cancel'],
-      [OrderStatus.RECEIVED]: ['store', 'cancel'],
-      [OrderStatus.STORED]: ['pack', 'cancel'],
-      [OrderStatus.ORDERED]: ['pack', 'cancel'],
-      [OrderStatus.PACKED]: ['dispatch', 'cancel'],
-      [OrderStatus.DISPATCHED]: ['issue', 'cancel'],
-      [OrderStatus.IN_TRANSIT]: ['issue', 'exception'],
-      [OrderStatus.ISSUED]: ['settle', 'return'],
-      [OrderStatus.SETTLED]: ['return'],
-      [OrderStatus.RETURNED]: [],
-      [OrderStatus.CANCELLED]: [],
-      [OrderStatus.DAMAGED]: [],
-      [OrderStatus.EXCEPTION]: [],
-      [OrderStatus.QUARANTINE]: []
-    };
-
-    const allowed = validTransitions[order.status] || [];
-    if (!allowed.includes(action)) {
-      return { success: false, error: `Invalid action ${action} for status ${order.status}` };
-    }
-
-    let newStatus = order.status;
-    let eventDetails = {};
-
-    switch (action) {
-      case 'receive':
-        newStatus = OrderStatus.RECEIVED;
-        // Reserve inventory at source PVZ
-        break;
-      case 'store':
-        newStatus = OrderStatus.STORED;
-        break;
-      case 'pack':
-        newStatus = OrderStatus.PACKED;
-        break;
-      case 'dispatch':
-        newStatus = OrderStatus.DISPATCHED;
-        eventDetails = { routeType: order.routeType, eta: order.routeEta };
-        break;
-      case 'issue':
-        newStatus = OrderStatus.ISSUED;
-        break;
-      case 'settle':
-        newStatus = OrderStatus.SETTLED;
-        this.recordFinancialSnapshot(order);
-        break;
-      case 'return':
-        newStatus = OrderStatus.RETURNED;
-        this.processReturn(order);
-        break;
-      case 'cancel':
-        newStatus = OrderStatus.CANCELLED;
-        break;
-    }
-
-    order.status = newStatus;
-    order.events.push({
-      type: action,
-      timestamp: this.state.virtualTime.currentTime,
-      details: eventDetails
-    });
-
-    this.notify();
-    return { success: true, newStatus };
-  }
-
-  /**
-   * Process return
-   */
-  processReturn(order) {
-    const pvz = this.state.pvzs.get(order.destinationPvzId);
-    if (pvz && pvz.inventory) {
-      // Add back to inventory as quarantine
-      pvz.inventory.push({
-        id: `inv-${generateId()}`,
-        productId: order.productId,
-        quantity: order.quantity,
-        batchId: `return-${order.id}`,
-        receivedAt: this.state.virtualTime.currentTime,
-        status: 'quarantine',
-        daysStored: 0
-      });
-      pvz.occupiedCapacity += order.quantity;
-    }
-  }
-
-  /**
-   * Record financial snapshot
-   */
-  recordFinancialSnapshot(order) {
-    const day = this.state.virtualTime.currentDay;
-    let snapshot = this.state.financialSnapshots.find(s => s.day === day);
-    if (!snapshot) {
-      snapshot = { day, ordersCount: 0, revenue: 0, meshCost: 0, classicCost: 0, savings: 0, pvzMargin: 0, pvzBreakdown: {} };
-      this.state.financialSnapshots.push(snapshot);
-    }
-    snapshot.ordersCount++;
-    snapshot.revenue += order.routeCost || 0;
-    snapshot.meshCost += order.routeCost || 0;
-    snapshot.classicCost += order.classicCost || 0;
-    snapshot.savings += (order.classicCost || 0) - (order.routeCost || 0);
-    snapshot.pvzMargin += order.pvzReward || 0;
-
-    const pvzId = order.destinationPvzId;
-    snapshot.pvzBreakdown[pvzId] = (snapshot.pvzBreakdown[pvzId] || 0) + (order.pvzReward || 0);
-  }
+  createOrder(...args) { return orderOperations.createOrder.apply(this,args); }
+  routeOrder(...args) { return orderOperations.routeOrder.apply(this,args); }
+  processOrderAction(...args) { return orderOperations.processOrderAction.apply(this,args); }
+  processReturn(...args) { return orderOperations.processReturn.apply(this,args); }
+  recordFinancialSnapshot(...args) { return orderOperations.recordFinancialSnapshot.apply(this,args); }
+  receiveSupply(...args) { return orderOperations.receiveSupply.apply(this,args); }
 
   // ============================================
   // DEMO SCENARIOS
@@ -825,6 +671,13 @@ class StateManager {
    * Reset demo to initial state
    */
   resetDemo() {
+    this.pauseVirtualClock();
+    this.state = this.createInitialState();
+    this.mcs = new MCS({pvzs:this.state.pvzs,cities:this.state.cities,tariffs:this.state.tariffs,orders:this.state.orders});
+    this.notify();
+    return;
+    // Preserved V7 reset below; V8 uses full deterministic reset.
+
     // Clear orders
     this.state.orders.clear();
     // Reset inventory
@@ -851,7 +704,7 @@ class StateManager {
     const history = this.state.salesHistory.get(productId);
     if (!history) return null;
     // Import DemandForecast dynamically to avoid circular dependency
-    const { DemandForecast } = require('./mcs-engine.js');
+
     return DemandForecast.forecastNextDay(history, 7, this.state.tariffs);
   }
 
@@ -893,6 +746,8 @@ class StateManager {
     this.state.ui = data.ui || this.state.ui;
     this.state.mcsDecisionLog = data.mcsDecisionLog || [];
     this.state.financialSnapshots = data.financialSnapshots || [];
+    this.state.ledger = data.ledger || [];
+    this.state.eventLog = data.eventLog || [];
     this.state.demoScenarios = this.createDemoScenarios();
     this.mcs = new MCS({
       pvzs: this.state.pvzs,

@@ -1,0 +1,154 @@
+
+## ppt/slides/slide1.xml
+1 / 6
+Vector PNI
+RWB x Волготех 2026
+WB
+MESH
+Модель распределённой
+логистики
+Трансформация ПВЗ в локальные узлы хранения и
+распределения, использующая существующую
+инфраструктуру для снижения логистических издержек.
+
+## ppt/slides/slide2.xml
+2 / 6
+Проблема и решение: Оптимизация логистических потоков
+Устранение лишних этапов обработки заказов за счет превращения ПВЗ в локальные логистические хабы.
+Бизнес-проблема
+✓
+Решение: WB Mesh
+Избыточная обработка
+Централизованная логистика через СЦ создает лишние
+звенья для локальных заказов, увеличивая время и
+стоимость.
+Дисбаланс запасов
+Товар часто находится далеко от района спроса, в то
+время как в других точках образуется неликвидный
+избыток.
+Недоиспользование ресурсов
+ПВЗ обладают потенциалом для хранения, который не
+используется в классической модели доставки.
+Гибридная модель
+Склады сохраняют роль основных логистических центров и 
+обеспечивают магистральные перевозки. Отобранные ПВЗ становятся 
+локальными узлами хранения, сборки и выдачи товаров в пределах 
+своего района.
+Система MCS (Control)
+Прогнозирует локальный спрос, отслеживает товарные остатки и 
+выявляет их дисбаланс между ПВЗ. На основе этих данных система 
+определяет необходимость перемещений и динамически объединяет 
+их в общие логистические задачи.
+Действующий транспорт
+Приоритет свободным мощностям и обратной загрузке,
+ 
+минимизируя 
+логистические расходы.
+
+## ppt/slides/slide3.xml
+3 / 6
+ЭКОНОМИЧЕСКАЯ МОДЕЛЬ
+Экономическая модель и выгоды
+СРАВНЕНИЕ СЕБЕСТОИМОСТИ (НА 1 ЗАКАЗ)
+-7 ₽
+целевая экономия на каждом Mesh-заказе
+Обычная модель
+Mesh-модель
+0 ₽
+20 ₽
+40 ₽
+60 ₽
+80 ₽
+100 ₽
+Магистраль
+Сортировка
+-
+3
+ ₽
+Рег. логистика
+-4 ₽
+Итого
+-7 ₽
+Сценарий масштабирования
+ГОДОВОЙ ОПЕРАЦИОННЫЙ ЭФФЕКТ
+1.716
+млрд ₽
+ОБЪЕМ (30% ДОЛИ)
+24 млн зак/мес
+ВАЛОВАЯ ЭКОНОМИЯ
+168 млн ₽/мес
+* Чистый эффект 143 млн ₽/мес после вычета расходов на IT-
+систему MCS
+Выгода для ПВЗ
+~14 000 ₽/мес
+Доп. доход за операции приёмки и хранения
+~6 500 ₽/мес
+Чистая прибыль на одну точку
+
+## ppt/slides/slide4.xml
+4 / 6
+ПИЛОТНЫЙ ПРОЕКТ
+Пилотный проект и перспективы развития
+Запуск контролируемого эксперимента на базе 10 ПВЗ для подтверждения экономической эффективности и соблюдения SLA.
+Параметры пилота
+КОНТУР И SKU
+10 пунктов выдачи заказов (ПВЗ)
+1 распределительный хаб
+500 – 1000 активных SKU
+МЕТОДОЛОГИЯ
+Длительность: 30 дней
+Использование контрольной группы
+Критерии успеха (KPI)
+СЕБЕСТОИМОСТЬ
+Снижение к станд. маршрутам
+≥5%
+КАЧЕСТВО СЕРВИСА
+Соблюдение SLA (Сроки)
+NORM
+ТОЧНОСТЬ ОПЕРАЦИЙ
+Учет товара / Успешность
+99.5%
+ЦЕЛЕВЫЕ ПОКАЗАТЕЛИ
+Перспективы
+Динамическая балансировка
+Переход к предиктивной аналитике спроса для
+перераспределения запасов между районами в
+реальном времени.
+Глобальное масштабирование
+Расширение на всю сеть ПВЗ, соответствующих
+критериям площади и транспортной доступности.
+SCALE PHASE 1
+
+## ppt/slides/slide5.xml
+5 / 6
+МНОГОУРОВНЕВАЯ СИСТЕМА КОНТРОЛЯ MCS
+Риски и меры по их предотвращению
+Операционные риски
+Технологические риски
+УГРОЗА
+Дефицит места в ПВЗ
+Жесткие лимиты вместимости в системе и приоритет зоны выдачи
+заказов над хранением.
+УГРОЗА
+Залеживание товара
+Автоматический контроль сроков хранения и принудительный
+возврат неликвида на склад.
+УГРОЗА
+Ухудшение SLA
+Предельное время ожидания консолидации; переключение на
+стандартный маршрут при задержке.
+ФИНАНСЫ
+Убыточность рейсов
+Внедрение Cost Engine для сравнения стоимости Mesh с
+альтернативой; отказ от перемещения без выгоды.
+УЧЕТ
+Потери и ошибки учета
+Обязательное сканирование на каждом этапе передачи и
+прозрачная система материальной ответственности.
+IT СИСТЕМА
+Сбои IT-системы
+Резервирование каналов связи и возможность работы в офлайн-
+режиме с последующей синхронизацией.
+
+## Theme
+<ns0:theme xmlns:ns0="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:ns1="http://schemas.microsoft.com/office/thememl/2012/main" name="Office Theme"><ns0:themeElements><ns0:clrScheme name="Office"><ns0:dk1><ns0:sysClr val="windowText" lastClr="000000" /></ns0:dk1><ns0:lt1><ns0:sysClr val="window" lastClr="FFFFFF" /></ns0:lt1><ns0:dk2><ns0:srgbClr val="1F497D" /></ns0:dk2><ns0:lt2><ns0:srgbClr val="EEECE1" /></ns0:lt2><ns0:accent1><ns0:srgbClr val="4F81BD" /></ns0:accent1><ns0:accent2><ns0:srgbClr val="C0504D" /></ns0:accent2><ns0:accent3><ns0:srgbClr val="9BBB59" /></ns0:accent3><ns0:accent4><ns0:srgbClr val="8064A2" /></ns0:accent4><ns0:accent5><ns0:srgbClr val="4BACC6" /></ns0:accent5><ns0:accent6><ns0:srgbClr val="F79646" /></ns0:accent6><ns0:hlink><ns0:srgbClr val="0000FF" /></ns0:hlink><ns0:folHlink><ns0:srgbClr val="800080" /></ns0:folHlink></ns0:clrScheme><ns0:fontScheme name="Office"><ns0:majorFont><ns0:latin typeface="Calibri" /><ns0:ea typeface="" /><ns0:cs typeface="" /><ns0:font script="Jpan" typeface="ＭＳ Ｐゴシック" /><ns0:font script="Hang" typeface="맑은 고딕" /><ns0:font script="Hans" typeface="宋体" /><ns0:font script="Hant" typeface="新細明體" /><ns0:font script="Arab" typeface="Times New Roman" /><ns0:font script="Hebr" typeface="Times New Roman" /><ns0:font script="Thai" typeface="Angsana New" /><ns0:font script="Ethi" typeface="Nyala" /><ns0:font script="Beng" typeface="Vrinda" /><ns0:font script="Gujr" typeface="Shruti" /><ns0:font script="Khmr" typeface="MoolBoran" /><ns0:font script="Knda" typeface="Tunga" /><ns0:font script="Guru" typeface="Raavi" /><ns0:font script="Cans" typeface="Euphemia" /><ns0:font script="Cher" typeface="Plantagenet Cherokee" /><ns0:font script="Yiii" typeface="Microsoft Yi Baiti" /><ns0:font script="Tibt" typeface="Microsoft Himalaya" /><ns0:font script="Thaa" typeface="MV Boli" /><ns0:font script="Deva" typeface="Mangal" /><ns0:font script="Telu" typeface="Gautami" /><ns0:font script="Taml" typeface="Latha" /><ns0:font script="Syrc" typeface="Estrangelo Edessa" /><ns0:font script="Orya" typeface="Kalinga" /><ns0:font script="Mlym" typeface="Kartika" /><ns0:font script="Laoo" typeface="DokChampa" /><ns0:font script="Sinh" typeface="Iskoola Pota" /><ns0:font script="Mong" typeface="Mongolian Baiti" /><ns0:font script="Viet" typeface="Times New Roman" /><ns0:font script="Uigh" typeface="Microsoft Uighur" /><ns0:font script="Geor" typeface="Sylfaen" /></ns0:majorFont><ns0:minorFont><ns0:latin typeface="Calibri" /><ns0:ea typeface="" /><ns0:cs typeface="" /><ns0:font script="Jpan" typeface="ＭＳ Ｐゴシック" /><ns0:font script="Hang" typeface="맑은 고딕" /><ns0:font script="Hans" typeface="宋体" /><ns0:font script="Hant" typeface="新細明體" /><ns0:font script="Arab" typeface="Arial" /><ns0:font script="Hebr" typeface="Arial" /><ns0:font script="Thai" typeface="Cordia New" /><ns0:font script="Ethi" typeface="Nyala" /><ns0:font script="Beng" typeface="Vrinda" /><ns0:font script="Gujr" typeface="Shruti" /><ns0:font script="Khmr" typeface="DaunPenh" /><ns0:font script="Knda" typeface="Tunga" /><ns0:font script="Guru" typeface="Raavi" /><ns0:font script="Cans" typeface="Euphemia" /><ns0:font script="Cher" typeface="Plantagenet Cherokee" /><ns0:font script="Yiii" typeface="Microsoft Yi Baiti" /><ns0:font script="Tibt" typeface="Microsoft Himalaya" /><ns0:font script="Thaa" typeface="MV Boli" /><ns0:font script="Deva" typeface="Mangal" /><ns0:font script="Telu" typeface="Gautami" /><ns0:font script="Taml" typeface="Latha" /><ns0:font script="Syrc" typeface="Estrangelo Edessa" /><ns0:font script="Orya" typeface="Kalinga" /><ns0:font script="Mlym" typeface="Kartika" /><ns0:font script="Laoo" typeface="DokChampa" /><ns0:font script="Sinh" typeface="Iskoola Pota" /><ns0:font script="Mong" typeface="Mongolian Baiti" /><ns0:font script="Viet" typeface="Arial" /><ns0:font script="Uigh" typeface="Microsoft Uighur" /><ns0:font script="Geor" typeface="Sylfaen" /></ns0:minorFont></ns0:fontScheme><ns0:fmtScheme name="Office"><ns0:fillStyleLst><ns0:solidFill><ns0:schemeClr val="phClr" /></ns0:solidFill><ns0:gradFill rotWithShape="1"><ns0:gsLst><ns0:gs pos="0"><ns0:schemeClr val="phClr"><ns0:tint val="50000" /><ns0:satMod val="300000" /></ns0:schemeClr></ns0:gs><ns0:gs pos="35000"><ns0:schemeClr val="phClr"><ns0:tint val="37000" /><ns0:satMod val="300000" /></ns0:schemeClr></ns0:gs><ns0:gs pos="100000"><ns0:schemeClr val="phClr"><ns0:tint val="15000" /><ns0:satMod val="350000" /></ns0:schemeClr></ns0:gs></ns0:gsLst><ns0:lin ang="16200000" scaled="1" /></ns0:gradFill><ns0:gradFill rotWithShape="1"><ns0:gsLst><ns0:gs pos="0"><ns0:schemeClr val="phClr"><ns0:tint val="100000" /><ns0:shade val="100000" /><ns0:satMod val="130000" /></ns0:schemeClr></ns0:gs><ns0:gs pos="100000"><ns0:schemeClr val="phClr"><ns0:tint val="50000" /><ns0:shade val="100000" /><ns0:satMod val="350000" /></ns0:schemeClr></ns0:gs></ns0:gsLst><ns0:lin ang="16200000" scaled="0" /></ns0:gradFill></ns0:fillStyleLst><ns0:lnStyleLst><ns0:ln w="9525" cap="flat" cmpd="sng" algn="ctr"><ns0:solidFill><ns0:schemeClr val="phClr"><ns0:shade val="95000" /><ns0:satMod val="105000" /></ns0:schemeClr></ns0:solidFill><ns0:prstDash val="solid" /></ns0:ln><ns0:ln w="25400" cap="flat" cmpd="sng" algn="ctr"><ns0:solidFill><ns0:schemeClr val="phClr" /></ns0:solidFill><ns0:prstDash val="solid" /></ns0:ln><ns0:ln w="38100" cap="flat" cmpd="sng" algn="ctr"><ns0:solidFill><ns0:schemeClr val="phClr" /></ns0:solidFill><ns0:prstDash val="solid" /></ns0:ln></ns0:lnStyleLst><ns0:effectStyleLst><ns0:effectStyle><ns0:effectLst><ns0:outerShdw blurRad="40000" dist="20000" dir="5400000" rotWithShape="0"><ns0:srgbClr val="000000"><ns0:alpha val="38000" /></ns0:srgbClr></ns0:outerShdw></ns0:effectLst></ns0:effectStyle><ns0:effectStyle><ns0:effectLst><ns0:outerShdw blurRad="40000" dist="23000" dir="5400000" rotWithShape="0"><ns0:srgbClr val="000000"><ns0:alpha val="35000" /></ns0:srgbClr></ns0:outerShdw></ns0:effectLst></ns0:effectStyle><ns0:effectStyle><ns0:effectLst><ns0:outerShdw blurRad="40000" dist="23000" dir="5400000" rotWithShape="0"><ns0:srgbClr val="000000"><ns0:alpha val="35000" /></ns0:srgbClr></ns0:outerShdw></ns0:effectLst><ns0:scene3d><ns0:camera prst="orthographicFront"><ns0:rot lat="0" lon="0" rev="0" /></ns0:camera><ns0:lightRig rig="threePt" dir="t"><ns0:rot lat="0" lon="0" rev="1200000" /></ns0:lightRig></ns0:scene3d><ns0:sp3d><ns0:bevelT w="63500" h="25400" /></ns0:sp3d></ns0:effectStyle></ns0:effectStyleLst><ns0:bgFillStyleLst><ns0:solidFill><ns0:schemeClr val="phClr" /></ns0:solidFill><ns0:gradFill rotWithShape="1"><ns0:gsLst><ns0:gs pos="0"><ns0:schemeClr val="phClr"><ns0:tint val="40000" /><ns0:satMod val="350000" /></ns0:schemeClr></ns0:gs><ns0:gs pos="40000"><ns0:schemeClr val="phClr"><ns0:tint val="45000" /><ns0:shade val="99000" /><ns0:satMod val="350000" /></ns0:schemeClr></ns0:gs><ns0:gs pos="100000"><ns0:schemeClr val="phClr"><ns0:shade val="20000" /><ns0:satMod val="255000" /></ns0:schemeClr></ns0:gs></ns0:gsLst><ns0:path path="circle"><ns0:fillToRect l="50000" t="-80000" r="50000" b="180000" /></ns0:path></ns0:gradFill><ns0:gradFill rotWithShape="1"><ns0:gsLst><ns0:gs pos="0"><ns0:schemeClr val="phClr"><ns0:tint val="80000" /><ns0:satMod val="300000" /></ns0:schemeClr></ns0:gs><ns0:gs pos="100000"><ns0:schemeClr val="phClr"><ns0:shade val="30000" /><ns0:satMod val="200000" /></ns0:schemeClr></ns0:gs></ns0:gsLst><ns0:path path="circle"><ns0:fillToRect l="50000" t="50000" r="50000" b="50000" /></ns0:path></ns0:gradFill></ns0:bgFillStyleLst></ns0:fmtScheme></ns0:themeElements><ns0:objectDefaults><ns0:spDef><ns0:spPr /><ns0:bodyPr /><ns0:lstStyle /><ns0:style><ns0:lnRef idx="1"><ns0:schemeClr val="accent1" /></ns0:lnRef><ns0:fillRef idx="3"><ns0:schemeClr val="accent1" /></ns0:fillRef><ns0:effectRef idx="2"><ns0:schemeClr val="accent1" /></ns0:effectRef><ns0:fontRef idx="minor"><ns0:schemeClr val="lt1" /></ns0:fontRef></ns0:style></ns0:spDef><ns0:lnDef><ns0:spPr /><ns0:bodyPr /><ns0:lstStyle /><ns0:style><ns0:lnRef idx="2"><ns0:schemeClr val="accent1" /></ns0:lnRef><ns0:fillRef idx="0"><ns0:schemeClr val="accent1" /></ns0:fillRef><ns0:effectRef idx="1"><ns0:schemeClr val="accent1" /></ns0:effectRef><ns0:fontRef idx="minor"><ns0:schemeClr val="tx1" /></ns0:fontRef></ns0:style></ns0:lnDef></ns0:objectDefaults><ns0:extLst><ns0:ext uri="{05A4C25C-085E-4340-85A3-A5531E510DB2}"><ns1:themeFamily name="Office Theme" id="{62F939B6-93AF-4DB8-9C6B-D6C7DFDC589F}" vid="{4A3C46E8-61CC-4603-A589-7422A47A8E4A}" /></ns0:ext></ns0:extLst></ns0:theme>

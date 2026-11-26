@@ -1,0 +1,146 @@
+/** All money is integer kopecks. Source: supplied TZ, sections 3.3 and 4.1–4.7. */
+import { DEFAULT_TARIFFS } from './types.js';
+
+export function numberInRange(value, name, min = 0, max = Number.MAX_SAFE_INTEGER, integer = false) {
+  if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isSafeInteger(value))) {
+    throw new RangeError(`Некорректное значение: ${name}`);
+  }
+  return value;
+}
+
+export class CostEngine {
+  constructor(tariffs = DEFAULT_TARIFFS) {
+    this.tariffs = { ...DEFAULT_TARIFFS, ...tariffs };
+  }
+
+  calculateTripCost(parcelsCount, stops = 1, waitMinutes = 0) {
+    numberInRange(parcelsCount, 'посылки', 1, 100000, true);
+    numberInRange(stops, 'остановки', 1, 100, true);
+    numberInRange(waitMinutes, 'простой', 0, 1440);
+    const t = this.tariffs;
+    const breakdown = { fixed: t.fixedTripCost, variable: t.variablePerParcel * parcelsCount,
+      extraStops: t.extraStopCost * (stops - 1), wait: Math.round(t.courierWaitPerMin * waitMinutes),
+      parcels: parcelsCount, stops, waitMinutes };
+    const total = breakdown.fixed + breakdown.variable + breakdown.extraStops + breakdown.wait;
+    return { total, perParcel: Math.ceil(total / parcelsCount), breakdown,
+      formula: `${t.fixedTripCost} + ${t.variablePerParcel} × ${parcelsCount} + ${t.extraStopCost} × (${stops} − 1) + ${t.courierWaitPerMin} × ${waitMinutes}` };
+  }
+
+  calculateStorageCost(days = 10, baseRate = this.tariffs.storagePerDay) {
+    numberInRange(days, 'срок хранения', 0, 3650);
+    numberInRange(baseRate, 'ставка хранения');
+    let total = 0;
+    const daily = [];
+    for (let day = 1; day <= Math.ceil(days); day++) {
+      const factor = day <= 14 ? 1 : day <= 30 ? 1.5 : 2.5;
+      const rate = Math.round(baseRate * factor * Math.min(1, days - day + 1));
+      total += rate;
+      daily.push({ day, rate, cumulative: total });
+    }
+    return { total, breakdown: { baseRate, includedSellerDays: 14, paidDays: Math.max(0, days - 14), daily },
+      formula: 'r × min(d,14) + 1,5r × min(max(d−14,0),16) + 2,5r × max(d−30,0)' };
+  }
+
+  calculatePvzPayout(days = 10) {
+    const t = this.tariffs;
+    const breakdown = { receive: t.receiveFee, storage: this.calculateStorageCost(days).total,
+      pack: t.packFee, bonus: t.pvzBonus };
+    return { total: Object.values(breakdown).reduce((a,b) => a+b,0), breakdown };
+  }
+
+  calculatePvzCost(days = 10) {
+    numberInRange(days, 'срок хранения', 0, 3650);
+    const t = this.tariffs;
+    const breakdown = { ops: t.partnerOpsCost, shelf: Math.round(days * t.partnerShelfPerDay), risk: t.partnerRiskCost };
+    return { total: Object.values(breakdown).reduce((a,b) => a+b,0), breakdown };
+  }
+
+  calculateClassicCost(days = 10, route = 'C1', returnRate = this.tariffs.returnRate) {
+    numberInRange(days, 'срок хранения', 0, 3650);
+    numberInRange(returnRate, 'возвраты', 0, 1);
+    const t = this.tariffs;
+    const breakdown = { transport: t.classicTransport + (route === 'C2' ? t.intercitySurcharge : 0),
+      storage: Math.round(t.hubStoragePerDay * days), sorting: t.classicSorting,
+      lastMile: t.classicLastMile, pvz: t.classicPVZ,
+      returns: Math.round(returnRate * t.hubReturnCost + t.classicLossRate * t.damageCost), it: t.classicIT };
+    return { total: Object.values(breakdown).reduce((a,b) => a+b,0), breakdown };
+  }
+
+  calculateMeshVariableCost(days = 10, route = 'M2', returnRate = this.tariffs.returnRate, resaleShare = this.tariffs.resaleShare) {
+    numberInRange(returnRate, 'возвраты', 0, 1);
+    numberInRange(resaleShare, 'локальная перепродажа', 0, 1);
+    const t = this.tariffs;
+    const breakdown = { placement: t.meshPlacement,
+      storage: this.calculateStorageCost(days).total + t.receiveFee + t.packFee,
+      sorting: route === 'M1' ? t.meshLocalSorting : t.meshSorting,
+      lastMile: 0, pvz: t.classicPVZ + t.pvzBonus,
+      returns: Math.round(returnRate * (t.returnInspection + t.localRestockCost * resaleShare + t.hubReturnCost * (1-resaleShare)) + t.meshLossRate * t.damageCost),
+      it: t.meshIT };
+    return { total: Object.values(breakdown).reduce((a,b) => a+b,0), breakdown };
+  }
+
+  calculateTransportThreshold(stops = 1, waitMinutes = 0) {
+    const t = this.tariffs;
+    const fixed = this.calculateTripCost(1, stops, waitMinutes).total - t.variablePerParcel;
+    const contribution = t.classicLastMile - t.variablePerParcel;
+    return contribution > 0 ? Math.ceil(fixed / contribution) : Infinity;
+  }
+
+  calculateBreakEvenThreshold(stops = 1, waitMinutes = 0, days = 10) {
+    const t = this.tariffs;
+    const fixed = this.calculateTripCost(1, stops, waitMinutes).total - t.variablePerParcel;
+    const contribution = this.calculateClassicCost(days).total - this.calculateMeshVariableCost(days).total - t.variablePerParcel;
+    return contribution > 0 ? Math.ceil(fixed / contribution) : Infinity;
+  }
+
+  calculateOrder({route = 'M2', batchSize = 40, days = 10, stops = 1, waitMinutes = 0,
+    returnRate = this.tariffs.returnRate, resaleShare = this.tariffs.resaleShare, price = 100000,
+    purchaseCost = 60000, commissionRate = .15, buyerDelivery = 0, promisedHours = 60} = {}) {
+    for (const [name,value] of Object.entries({price,purchaseCost,buyerDelivery})) numberInRange(value,name);
+    numberInRange(commissionRate, 'комиссия', 0, 1);
+    const t = this.tariffs;
+    const classicRoute = route === 'C2' ? 'C2' : 'C1';
+    const classic = this.calculateClassicCost(days, classicRoute, returnRate);
+    const isMesh = route === 'M1' || route === 'M2';
+    const variable = isMesh ? this.calculateMeshVariableCost(days, route, returnRate, resaleShare) : classic;
+    const trip = route === 'M2' ? this.calculateTripCost(batchSize, stops, waitMinutes) : null;
+    const breakdown = {...variable.breakdown};
+    if (trip) breakdown.lastMile = trip.perParcel;
+    const total = Object.values(breakdown).reduce((a,b) => a+b,0);
+    const pvzRevenue = isMesh ? this.calculatePvzPayout(days).total : 0;
+    const pvzCost = isMesh ? this.calculatePvzCost(days).total : 0;
+    const extraDays = Math.max(0, days - 14);
+    const classicFee = t.sellerClassicFee + Math.round(extraDays * 140);
+    const meshFee = t.sellerMeshFee + Math.round(Math.min(extraDays,16)*180 + Math.max(0,days-30)*300);
+    const fee = isMesh ? meshFee : classicFee + (route === 'C2' ? t.intercitySurcharge : 0);
+    const commission = Math.round(price * commissionRate);
+    const sellerBefore = price - purchaseCost - commission - classicFee;
+    const sellerAfter = price - purchaseCost - commission - fee;
+    const etaHours = {M1:1,M2:6,C1:40,C2:60}[route];
+    const savings = classic.total - total;
+    return { route, total, breakdown, classic, trip, savings, days, batchSize, etaHours,
+      formula: 'Σ(перевозка, хранение, сортировка, доставка, ПВЗ, риски, IT)',
+      wb: { cost: total, revenue: fee, margin: fee-total, baselineMargin: classicFee-classic.total },
+      pvz: { ordinaryReward: t.classicPVZ, revenue: pvzRevenue, cost: pvzCost, result: pvzRevenue-pvzCost },
+      seller: { price, purchaseCost, commission, classicFee, fee, before: sellerBefore, after: sellerAfter },
+      buyer: { price, delivery: buyerDelivery, baselineDelivery: buyerDelivery, promisedHours, etaHours },
+      guards: { wb: savings >= t.minimumSavings, pvz: pvzRevenue-pvzCost > 0,
+        seller: sellerAfter >= sellerBefore, buyer: etaHours <= promisedHours && etaHours <= (classicRoute === 'C2' ? 60 : 40) } };
+  }
+
+  calculateScale({monthlyOrders=80000000,meshShare=.3,savings=704,fixedMonthly=0}={}) {
+    numberInRange(monthlyOrders,'объём',0,1e12,true); numberInRange(meshShare,'доля Mesh',0,1);
+    numberInRange(fixedMonthly,'постоянные затраты');
+    const meshOrders = Math.round(monthlyOrders*meshShare);
+    const gross = Math.round(meshOrders*savings);
+    return {meshOrders,gross,fixedMonthly,net:gross-fixedMonthly,annual:(gross-fixedMonthly)*12};
+  }
+
+  static calculateTripCost(t,...args) { return new CostEngine(t).calculateTripCost(...args); }
+  static calculateStorageCost(t,...args) { return new CostEngine(t).calculateStorageCost(...args); }
+  static calculatePvzPayout(t,...args) { return new CostEngine(t).calculatePvzPayout(...args); }
+  static calculatePvzCost(t,...args) { return new CostEngine(t).calculatePvzCost(...args); }
+  static calculateClassicCost(t,...args) { return new CostEngine(t).calculateClassicCost(...args); }
+  static calculateMeshVariableCost(t,...args) { return new CostEngine(t).calculateMeshVariableCost(...args); }
+  static calculateBreakEvenThreshold(t,...args) { return new CostEngine(t).calculateBreakEvenThreshold(...args); }
+}

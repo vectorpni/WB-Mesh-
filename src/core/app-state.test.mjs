@@ -35,9 +35,9 @@ const state = StateManager.getInstance();
 // Test 4: Create order
 {
   const s = state.getState();
-  const pvzId = Array.from(s.pvzs.keys())[0];
+  const pvzId = 'pvz-perm-plus';
   const order = state.createOrder({
-    productId: 'p1',
+    productId: 'prod-1',
     quantity: 3,
     sourcePvzId: pvzId,
     destinationPvzId: pvzId,

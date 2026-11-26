@@ -32,9 +32,10 @@ const mgr = new InventoryManager(pvzs);
   const result = mgr.reserve('batch-1', 5, 'order-1');
   assert.strictEqual(result.success, true);
   const item = pvzs.get('pvz-1').inventory.find(i => i.batchId === 'batch-1');
-  assert.strictEqual(item.quantity, 15);
-  assert.strictEqual(item.status, 'reserved');
-  assert.strictEqual(item.reservedForOrderId, 'order-1');
+  assert.strictEqual(item.quantity, 20);
+  assert.strictEqual(InventoryManager.available(item), 15);
+  assert.strictEqual(item.status, 'available');
+  assert.strictEqual(item.reservations['order-1'], 5);
 }
 
 // Test 4: Reserve more than available
@@ -51,7 +52,7 @@ const mgr = new InventoryManager(pvzs);
   const item = pvzs.get('pvz-1').inventory.find(i => i.batchId === 'batch-1');
   assert.strictEqual(item.quantity, 20);
   assert.strictEqual(item.status, 'available');
-  assert.strictEqual(item.reservedForOrderId, null);
+  assert.strictEqual(Object.keys(item.reservations).length, 0);
 }
 
 // Test 6: Release non-existent

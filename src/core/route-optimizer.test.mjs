@@ -31,15 +31,15 @@ pvzs.set('pvz-ekb-hub', {
 });
 pvzs.set('pvz-perm-plus', {
   id: 'pvz-perm-plus', cityId: 'perm', name: 'Плюс Ареал', type: PVZType.MESH,
-  capacity: 200, occupiedCapacity: 5, coordinates: { x: 100, y: 140 }, operationalSlots: 8, inventory: []
+  capacity: 200, occupiedCapacity: 5, coordinates: { x: 100, y: 140 }, operationalSlots: 8, inventory: [{productId: 'p1', batchId: 'b1', quantity: 70, status: 'available'}]
 });
 pvzs.set('pvz-perm-krasnov', {
   id: 'pvz-perm-krasnov', cityId: 'perm', name: 'Красновский', type: PVZType.MESH,
-  capacity: 180, occupiedCapacity: 3, coordinates: { x: 190, y: 100 }, operationalSlots: 6, inventory: []
+  capacity: 180, occupiedCapacity: 3, coordinates: { x: 190, y: 100 }, operationalSlots: 6, inventory: [{productId: 'p1', batchId: 'b2', quantity: 70, status: 'available'}]
 });
 pvzs.set('pvz-ekb-ural', {
   id: 'pvz-ekb-ural', cityId: 'ekaterinburg', name: 'Уральский', type: PVZType.MESH,
-  capacity: 220, occupiedCapacity: 2, coordinates: { x: 360, y: 200 }, operationalSlots: 6, inventory: []
+  capacity: 220, occupiedCapacity: 2, coordinates: { x: 360, y: 200 }, operationalSlots: 6, inventory: [{productId: 'p1', batchId: 'b2', quantity: 70, status: 'available'}]
 });
 
 const order = {
@@ -59,7 +59,7 @@ const order = {
 
 // Test 2: M2 (same city, different mesh PVZ)
 {
-  const orderM2 = { ...order, sourcePvzId: 'pvz-perm-plus', destinationPvzId: 'pvz-perm-krasnov', quantity: 1 };
+  const orderM2 = { ...order, sourcePvzId: 'pvz-perm-plus', destinationPvzId: 'pvz-perm-krasnov', quantity: 40 };
   const candidates = optimizer.findCandidates(orderM2, pvzs, cities);
   const m2 = candidates.find(c => c.type === RouteType.M2);
   assert.ok(m2, 'M2 candidate should exist for same city mesh-to-mesh');
@@ -83,7 +83,7 @@ const order = {
 
 // Test 5: selectRoute prefers M1 > M2 > C1 > C2
 {
-  const orderM2 = { ...order, sourcePvzId: 'pvz-perm-plus', destinationPvzId: 'pvz-perm-krasnov', quantity: 1 };
+  const orderM2 = { ...order, sourcePvzId: 'pvz-perm-plus', destinationPvzId: 'pvz-perm-krasnov', quantity: 40 };
   const candidates = optimizer.findCandidates(orderM2, pvzs, cities);
   const selected = optimizer.selectRoute(candidates);
   assert.ok(selected, 'Should select a route');
@@ -94,7 +94,7 @@ const order = {
 {
   const fullPvz = new Map(pvzs);
   fullPvz.set('pvz-perm-krasnov', { ...pvzs.get('pvz-perm-krasnov'), occupiedCapacity: 180, capacity: 180 });
-  const orderFull = { ...order, sourcePvzId: 'pvz-perm-plus', destinationPvzId: 'pvz-perm-krasnov', quantity: 10 };
+  const orderFull = { ...order, sourcePvzId: 'pvz-perm-plus', destinationPvzId: 'pvz-perm-krasnov', quantity: 400 };
   const candidates = optimizer.findCandidates(orderFull, fullPvz, cities);
   const m2 = candidates.find(c => c.type === RouteType.M2);
   assert.ok(m2 && !m2.available, 'M2 should be unavailable when dest PVZ is full');

@@ -74,11 +74,11 @@ const engine = new CostEngine(t);
 // Test 9: PVZ payout and cost
 {
   const payout = engine.calculatePvzPayout(3);
-  const payoutExpected = t.receiveFee + t.storagePerDay * 3 + t.packFee + t.transferFee;
+  const payoutExpected = t.receiveFee + t.storagePerDay * 3 + t.packFee + t.pvzBonus;
   assert.strictEqual(payout.total, payoutExpected);
 
   const cost = engine.calculatePvzCost(3);
-  const costExpected = t.partnerOpsCost + t.partnerShelfPerDay * 3 + t.transferFee;
+  const costExpected = t.partnerOpsCost + t.partnerShelfPerDay * 3 + t.partnerRiskCost;
   assert.strictEqual(cost.total, costExpected);
   assert.ok(payout.total > cost.total, 'PVZ margin should be positive');
 }
