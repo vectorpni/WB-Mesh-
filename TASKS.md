@@ -19,7 +19,7 @@
 - [x] Fix P0-2 (Google Fonts removed)
 - [x] Fix P0-3 (unit test files added)
 - [x] Fix P0-4 (UserRole.OWNER → UserRole.PVZ_OWNER)
-- [ ] Fix P0-1 (economics mismatch — documented, NOT forced)
+- [x] Fix P0-1 (economics mismatch — resolved: JSDoc TariffConfig aligned to DEFAULT_TARIFFS actual values; economy NOT forced to target numbers per directive)
 
 ## Stage 2: ВОССТАНОВЛЕНИЕ (Extreme Frontend Recovery) — IN PROGRESS
 
@@ -31,11 +31,11 @@
 - [ ] Fix header alignment
 - [ ] Fix component sizes
 - [ ] Fix theme mixing (light/dark consistency)
-- [ ] Wire PVZ workspace action handlers (P1-1)
-- [ ] Connect forecast panel to DemandForecast (P1-2)
-- [ ] Wire network visualization to live occupancy (P1-3)
-- [ ] Add tariff persistence (P1-4)
-- [ ] Verify demo timing 3-5 min (P1-5)
+- [x] Wire PVZ workspace action handlers (P1-1) — processOrderAction wired to StateManager
+- [x] Connect forecast panel to DemandForecast (P1-2) — renderSellerForecast uses state.salesHistory + DemandForecast.forecastNextDay
+- [x] Wire network visualization to live occupancy (P1-3) — capacity ring reads pvz.occupiedCapacity/capacity
+- [x] Add tariff persistence (P1-4) — localStorage wb-mesh-tariffs + restore in initApp
+- [x] Verify demo timing 3-5 min (P1-5) — test-final.cjs PASS, 5 demo scenarios
 
 ## Stage 3: ЭКОНОМИКА (Extreme Economic Killcritic) — PENDING
 
@@ -66,8 +66,8 @@
 ## Stage 13: AI/ФОРМИРОВАНИЕ (Forecasting) — PENDING
 
 - [ ] Compare naive/moving average/EWMA/seasonal methods
-- [ ] Fixed seed for reproducibility
-- [ ] WAPE/bias evaluation
+- [x] Fixed seed for reproducibility — seeded LCG RNG replaces Math.random() in StateManager (generateSalesHistory, seedInitialInventory); `setDemoSeed()` available
+- [x] WAPE/bias evaluation — DemandForecast.evaluate computes WAPE; forecast panel shows bias/hitRate/MAE per product
 - [ ] Forecast drives real decisions (storage location, deficit/excess, replenishment, route formation)
 
 ## Stage 14: ДЕМО-СЦЕНАРИИ (5 Demo Scenarios) — PENDING

@@ -90,38 +90,35 @@ export const ReturnDecision = {
  * @property {number} extraStopCost - 4000 копеек = 40 ₽
  * @property {number} courierWaitPerMin - 600 копеек = 6 ₽/мин
  * @property {number} receiveFee - 600 копеек = 6 ₽
- * @property {number} storagePerDay - 500 копеек = 5 ₽/день
+ * @property {number} storagePerDay - 1500 копеек = 15 ₽/день (прогрессивный)
  * @property {number} packFee - 1800 копеек = 18 ₽
- * @property {number} partnerOpsCost - 1700 копеек = 17 ₽
- * @property {number} partnerShelfPerDay - 200 копеек = 2 ₽/день
- * @property {number} transferFee - 600 копеек = 6 ₽
- * @property {number} meshReturnCost - 10000 копеек = 100 ₽
+ * @property {number} partnerOpsCost - 1500 копеек = 15 ₽
+ * @property {number} partnerShelfPerDay - 800 копеек = 8 ₽/день
+ * @property {number} transferFee - 1000 копеек = 10 ₽
+ * @property {number} meshReturnCost - 2000 копеек = 20 ₽
  * @property {number} hubReturnCost - 5000 копеек = 50 ₽
- * @property {number} damageCost - переменная
- * @property {number} classicTransport - 2400 копеек = 24 ₽
- * @property {number} classicStorage - 1200 копеек = 12 ₽
- * @property {number} classicSorting - 1400 копеек = 14 ₽
- * @property {number} classicLastMile - 2400 копеек = 24 ₽
- * @property {number} classicPVZ - 1300 копеек = 13 ₽
- * @property {number} classicReturns - 700 копеек = 7 ₽
- * @property {number} classicIT - 600 копеек = 6 ₽
- * @property {number} meshPlacement - 2200 копеек = 22 ₽
- * @property {number} meshStorage - 1300 копеек = 13 ₽
- * @property {number} meshSorting - 1000 копеек = 10 ₽
- * @property {number} meshLastMile - 2000 копеек = 20 ₽
- * @property {number} meshPVZ - 1400 копеек = 14 ₽
+ * @property {number} damageCost - 50000 копеек = 500 ₽
+ * @property {number} classicTransport - 3500 копеек = 35 ₽
+ * @property {number} classicStorage - 2000 копеек = 20 ₽
+ * @property {number} classicSorting - 1000 копеек = 10 ₽
+ * @property {number} classicLastMile - 2500 копеек = 25 ₽
+ * @property {number} classicPVZ - 1500 копеек = 15 ₽
+ * @property {number} classicReturns - 1000 копеек = 10 ₽
+ * @property {number} classicIT - 500 копеек = 5 ₽
+ * @property {number} meshPlacement - 500 копеек = 5 ₽
+ * @property {number} meshStorage - 1500 копеек = 15 ₽
+ * @property {number} meshSorting - 800 копеек = 8 ₽
+ * @property {number} meshLastMile - 2500 копеек = 25 ₽
+ * @property {number} meshPVZ - 1500 копеек = 15 ₽
  * @property {number} meshReturns - 600 копеек = 6 ₽
- * @property {number} meshIT - 800 копеек = 8 ₽
- * @property {number} sellerMeshFee - 1000 копеек = 10 ₽
- * @property {number} sellerHubFee - 2000 копеек = 20 ₽
- * @property {number} customerPrice - 100 копеек = 1 ₽ (conditional)
- * @property {number} maxStorageDays - 7 дней
- * @property {number} freeStorageDays - 3 дня
+ * @property {number} meshIT - 500 копеек = 5 ₽
+ * @property {number} maxStorageDays - 60 дней
+ * @property {number} freeStorageDays - 7 дней
  * @property {number} progressiveStorageMultiplier - 1.5 после бесплатного периода
- * @property {number} pvzCapacity - 12 мест
- * @property {number} vehicleCapacity - 12 мест
- * @property {number} operationalSlots - 4 слота
- * @property {number} meshHours - 8 часов
+ * @property {number} pvzCapacity - 200 мест
+ * @property {number} vehicleCapacity - 500 мест
+ * @property {number} operationalSlots - 8 слотов
+ * @property {number} meshHours - 4 часа
  * @property {number} hubHours - 24 часа
  * @property {number} slaHours - 24 часа
  */

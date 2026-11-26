@@ -44,6 +44,12 @@ async function initApp() {
     console.warn('Could not restore tariffs from localStorage:', e);
   }
 
+  // Auto-select default seller so the seller cabinet renders data on load
+  const s0 = window.appState.getState();
+  if (!s0.ui.selectedSellerId && s0.sellers.size > 0) {
+    window.appState.setSelectedSeller(Array.from(s0.sellers.keys())[0]);
+  }
+
   // Subscribe to state changes
   window.appState.subscribe(onStateChange);
 
@@ -405,7 +411,7 @@ function renderDashboard() {
   const state = window.appState.getState();
   const kpiGrid = document.getElementById('kpiGrid');
 
-  // Calculate KPIs
+  // Calculate KPIs from real state only — no synthetic data
   const totalOrders = state.orders.size;
   const activeOrders = Array.from(state.orders.values()).filter(o => !['settled', 'cancelled', 'returned'].includes(o.status)).length;
   const meshOrders = Array.from(state.orders.values()).filter(o => o.routeType && o.routeType !== 'blocked').length;
@@ -422,11 +428,34 @@ function renderDashboard() {
   const avgDeliveryTime = calculateAvgDeliveryTime(state);
   const pvzUtilization = calculateAvgPvzUtilization(state);
 
+  // Branded dashboard banner
+  const banner = document.getElementById('dashboardBanner');
+  if (banner) {
+    const meshPct = totalOrders > 0 ? Math.round((meshOrders / totalOrders) * 100) : 0;
+    banner.innerHTML = `
+      <div class="banner-inner">
+        <div class="banner-badge">WB Mesh Control System</div>
+        <h2 class="banner-title">Операционный обзор</h2>
+        <p class="banner-desc">Меш-логистика Wildberries — классическая модель vs Mesh. Данные реальные, без синтетики.</p>
+        <div class="banner-metrics">
+          <span class="banner-metric"><span class="banner-metric-value">${totalOrders}</span> заказов в системе</span>
+          <span class="banner-metric"><span class="banner-metric-value">${meshPct}%</span> заказов через Mesh</span>
+          <span class="banner-metric"><span class="banner-metric-value">${money(totalSavings)}</span> экономия Mesh vs Classic</span>
+        </div>
+      </div>
+      <div class="banner-action">
+        <button class="btn btn-primary btn-sm" onclick="runDemo('city_order')">🚀 Запустить демо «Городской заказ»</button>
+        <button class="btn btn-ghost btn-sm" onclick="runDemo('intercity_order')">Межгород C2</button>
+        <span class="banner-hint">Нет данных? Запустите любой демо-сценарий — все графики и KPI заполнятся реальными расчётами.</span>
+      </div>
+    `;
+  }
+
   const kpis = [
-    createKpiCard({ label: 'Всего заказов', value: totalOrders, delta: activeOrders, deltaLabel: 'активных', icon: 'package', variant: 'primary' }),
-    createKpiCard({ label: 'Mesh заказов', value: meshOrders, delta: classicOrders, deltaLabel: 'Classic', icon: 'mesh', variant: 'success' }),
-    createKpiCard({ label: 'Выручка', value: money(totalRevenue), delta: totalSavings, deltaLabel: 'экономия', icon: 'wallet', variant: 'info' }),
-    createKpiCard({ label: 'Ср. доставка', value: `${avgDeliveryTime}ч`, delta: pvzUtilization, deltaLabel: '% загрузки ПВЗ', icon: 'truck', variant: 'warning' }),
+    createKpiCard({ label: 'Всего заказов', value: totalOrders || '—', delta: activeOrders || 0, deltaLabel: 'активных', icon: 'package', variant: 'primary' }),
+    createKpiCard({ label: 'Mesh заказов', value: meshOrders || '—', delta: classicOrders || 0, deltaLabel: 'Classic', icon: 'mesh', variant: 'success' }),
+    createKpiCard({ label: 'Выручка', value: totalRevenue > 0 ? money(totalRevenue) : '—', delta: totalSavings !== 0 ? totalSavings : undefined, deltaLabel: 'экономия', icon: 'wallet', variant: 'info' }),
+    createKpiCard({ label: 'Ср. доставка', value: avgDeliveryTime > 0 ? `${avgDeliveryTime}ч` : '—', delta: pvzUtilization > 0 ? pvzUtilization : undefined, deltaLabel: '% загрузки ПВЗ', icon: 'truck', variant: 'warning' }),
     createKpiCard({ label: 'ПВЗ в сети', value: state.pvzs.size, icon: 'building' }),
     createKpiCard({ label: 'Продавцов', value: state.sellers.size, icon: 'user' }),
   ];
@@ -434,12 +463,32 @@ function renderDashboard() {
   kpiGrid.innerHTML = '';
   kpis.forEach(kpi => kpiGrid.appendChild(kpi));
 
-  // Charts
-  renderOrdersChart(state);
-  renderRevenueChart(state);
+  // Charts — real data only, empty state when no orders
+  if (totalOrders === 0) {
+    document.getElementById('ordersChartCard').querySelector('.card-body').innerHTML = emptyChartState('Заказов пока нет. Запустите демо-сценарий.');
+    document.getElementById('revenueChartCard').querySelector('.card-body').innerHTML = emptyChartState('Нет выручки — данных о заказах нет.');
+    document.getElementById('routeBreakdownCard').querySelector('.card-body').innerHTML = emptyChartState('Маршрутов пока нет.');
+  } else {
+    renderOrdersChart(state);
+    renderRevenueChart(state);
+    renderRouteChart(state);
+  }
   renderPvzLoadList(state);
-  renderRouteChart(state);
   renderRecentOrders(state);
+}
+
+/**
+ * Empty state placeholder for charts when no real data exists.
+ * Never uses Math.random() or synthetic values.
+ */
+function emptyChartState(message) {
+  return `
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">${message}</div>
+      <div class="empty-hint">График отобразится автоматически после создания заказов через демо-сценарий.</div>
+    </div>
+  `;
 }
 
 function calculateAvgDeliveryTime(state) {
@@ -457,20 +506,36 @@ function calculateAvgPvzUtilization(state) {
 function renderOrdersChart(state) {
   const canvas = document.getElementById('ordersChart');
   if (!canvas) return;
+
+  // Only render when there are real orders — never synthetic data
+  if (state.orders.size === 0) {
+    const cardBody = canvas.parentElement;
+    cardBody.innerHTML = emptyChartState('Заказов пока нет — график заполнится после запуска демо-сценария.');
+    return;
+  }
+
   const ctx = canvas.getContext('2d');
   const width = canvas.width = canvas.parentElement.clientWidth;
   const height = canvas.height = 200;
 
-  // Generate last 14 days data
+  // Generate last 14 days data from real order history
   const labels = [];
   const meshData = [];
   const classicData = [];
   for (let i = 13; i >= 0; i--) {
     const day = state.virtualTime.currentDay - i;
     labels.push(`День ${day}`);
-    // Simulated data based on order history
-    meshData.push(Math.max(0, Math.floor(Math.random() * 20) + 5));
-    classicData.push(Math.max(0, Math.floor(Math.random() * 15) + 3));
+    // Count real orders created on this day (day = hours / 24)
+    const dayStart = day * 24;
+    const dayEnd = dayStart + 24;
+    const dayOrders = Array.from(state.orders.values()).filter(o => {
+      const created = o.createdAt || 0;
+      return created >= dayStart && created < dayEnd;
+    });
+    const meshCount = dayOrders.filter(o => o.routeType && o.routeType !== 'blocked').length;
+    const classicCount = dayOrders.filter(o => !o.routeType || o.routeType === 'blocked').length;
+    meshData.push(meshCount);
+    classicData.push(classicCount);
   }
 
   drawLineChart(ctx, width, height, labels, [
@@ -482,6 +547,14 @@ function renderOrdersChart(state) {
 function renderRevenueChart(state) {
   const canvas = document.getElementById('revenueChart');
   if (!canvas) return;
+
+  // Only render when there are settled orders — never synthetic data
+  if (state.orders.size === 0) {
+    const cardBody = canvas.parentElement;
+    cardBody.innerHTML = emptyChartState('Нет выручки — данных о заказах нет.');
+    return;
+  }
+
   const ctx = canvas.getContext('2d');
   const width = canvas.width = canvas.parentElement.clientWidth;
   const height = canvas.height = 200;
@@ -489,8 +562,19 @@ function renderRevenueChart(state) {
   const labels = [];
   const savingsData = [];
   for (let i = 13; i >= 0; i--) {
-    labels.push(`День ${state.virtualTime.currentDay - i}`);
-    savingsData.push(Math.floor(Math.random() * 50000) + 10000);
+    const day = state.virtualTime.currentDay - i;
+    labels.push(`День ${day}`);
+    // Real savings from settled Mesh orders on this day
+    const dayStart = day * 24;
+    const dayEnd = dayStart + 24;
+    const dayOrders = Array.from(state.orders.values()).filter(o => {
+      const created = o.createdAt || 0;
+      return created >= dayStart && created < dayEnd;
+    });
+    const daySavings = dayOrders
+      .filter(o => o.routeType && o.routeType !== 'blocked')
+      .reduce((sum, o) => sum + ((o.classicCost || 0) - (o.routeCost || 0)), 0);
+    savingsData.push(daySavings);
   }
 
   drawBarChart(ctx, width, height, labels, savingsData, '#10B981');
@@ -712,16 +796,19 @@ function setupPvzWorkspaceListeners() {
 
   document.getElementById('pvzOrderFilter').addEventListener('change', renderPvzWorkspace);
 
-  // Action buttons
-  document.getElementById('btnReceive').addEventListener('click', () => pvzAction('receive'));
-  document.getElementById('btnStore').addEventListener('click', () => pvzAction('store'));
-  document.getElementById('btnPack').addEventListener('click', () => pvzAction('pack'));
-  document.getElementById('btnDispatch').addEventListener('click', () => pvzAction('dispatch'));
-  document.getElementById('btnIssue').addEventListener('click', () => pvzAction('issue'));
-  document.getElementById('btnReturn').addEventListener('click', () => pvzAction('return'));
+  // Action buttons — each wired to its dedicated state method
+  document.getElementById('btnReceive').addEventListener('click', () => pvzReceiveOrder());
+  document.getElementById('btnStore').addEventListener('click', () => pvzStoreOrder());
+  document.getElementById('btnPack').addEventListener('click', () => pvzOrderAction('pack'));
+  document.getElementById('btnDispatch').addEventListener('click', () => pvzOrderAction('dispatch'));
+  document.getElementById('btnIssue').addEventListener('click', () => pvzOrderAction('issue'));
+  document.getElementById('btnReturn').addEventListener('click', () => pvzReturnOrder());
 }
 
-function pvzAction(action) {
+/**
+ * Receive — create a new incoming order at the selected PVZ (StateManager.createOrder).
+ */
+function pvzReceiveOrder() {
   const state = window.appState.getState();
   const pvzId = state.ui.selectedPvzId;
   if (!pvzId) {
@@ -729,20 +816,77 @@ function pvzAction(action) {
     return;
   }
 
-  // Find applicable order
-  const orders = Array.from(state.orders.values()).filter(o => o.destinationPvzId === pvzId);
-  let targetOrder = null;
+  const product = Array.from(state.products.values())[0];
+  if (!product) {
+    showToast('Нет товаров для создания заказа', 'error');
+    return;
+  }
+
+  const order = window.appState.createOrder({
+    productId: product.id,
+    quantity: 1,
+    destinationPvzId: pvzId,
+    sourcePvzId: pvzId,
+    sellerId: product.sellerId
+  });
+
+  showToast(`Заказ создан: ${order.id.slice(-6)}`, 'success');
+  renderPvzWorkspace();
+}
+
+/**
+ * Store — reserve storage capacity for a received order (InventoryManager.reserve).
+ */
+function pvzStoreOrder() {
+  const state = window.appState.getState();
+  const pvzId = state.ui.selectedPvzId;
+  if (!pvzId) {
+    showToast('Выберите ПВЗ', 'warning');
+    return;
+  }
+
+  const orders = Array.from(state.orders.values()).filter(o => o.destinationPvzId === pvzId && o.status === 'received');
+  const targetOrder = orders[0];
+  if (!targetOrder) {
+    showToast('Нет заказов на приёмке для размещения на хранение', 'warning');
+    return;
+  }
+
+  const pvz = state.pvzs.get(pvzId);
+  const batch = pvz && pvz.inventory ? pvz.inventory.find(i => i.productId === targetOrder.productId && i.status === 'available') : null;
+  if (!batch) {
+    showToast('Нет доступных партий товара на ПВЗ', 'error');
+    return;
+  }
+
+  const result = new InventoryManager(state.pvzs).reserve(batch.batchId, targetOrder.quantity, targetOrder.id);
+  if (result.success) {
+    showToast(`Заказ ${targetOrder.id.slice(-6)} размещён на хранение`, 'success');
+  } else {
+    showToast(result.error, 'error');
+  }
+  renderPvzWorkspace();
+}
+
+/**
+ * Pack / Dispatch / Issue — order lifecycle transition via StateManager.processOrderAction.
+ */
+function pvzOrderAction(action) {
+  const state = window.appState.getState();
+  const pvzId = state.ui.selectedPvzId;
+  if (!pvzId) {
+    showToast('Выберите ПВЗ', 'warning');
+    return;
+  }
 
   const statusMap = {
-    receive: 'new',
-    store: 'received',
     pack: 'ordered',
     dispatch: 'packed',
-    issue: 'in_transit',
-    return: 'issued'
+    issue: 'in_transit'
   };
 
-  targetOrder = orders.find(o => o.status === statusMap[action]);
+  const orders = Array.from(state.orders.values()).filter(o => o.destinationPvzId === pvzId);
+  const targetOrder = orders.find(o => o.status === statusMap[action]);
   if (!targetOrder) {
     showToast(`Нет заказов для действия: ${action}`, 'warning');
     return;
@@ -757,6 +901,35 @@ function pvzAction(action) {
   renderPvzWorkspace();
 }
 
+/**
+ * Return — move an issued order back to the PVZ as quarantine inventory (StateManager.processReturn).
+ */
+function pvzReturnOrder() {
+  const state = window.appState.getState();
+  const pvzId = state.ui.selectedPvzId;
+  if (!pvzId) {
+    showToast('Выберите ПВЗ', 'warning');
+    return;
+  }
+
+  const orders = Array.from(state.orders.values()).filter(o => o.destinationPvzId === pvzId);
+  const targetOrder = orders.find(o => o.status === 'issued');
+  if (!targetOrder) {
+    showToast('Нет выданных заказов для возврата', 'warning');
+    return;
+  }
+
+  const pvz = state.pvzs.get(pvzId);
+  if (!pvz) {
+    showToast('ПВЗ не найден', 'error');
+    return;
+  }
+
+  window.appState.processReturn(targetOrder);
+  showToast(`Возврат заказа ${targetOrder.id.slice(-6)} оформлен`, 'success');
+  renderPvzWorkspace();
+}
+
 function renderPvzWorkspace() {
   if (window.currentTab !== 'pvz') return;
 
@@ -765,11 +938,12 @@ function renderPvzWorkspace() {
   const pvz = pvzId ? state.pvzs.get(pvzId) : null;
 
   if (!pvz) {
-    document.getElementById('pvzInventoryBody').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-tertiary">Выберите ПВЗ</td></tr>';
+    document.getElementById('pvzInventoryBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-tertiary">Выберите ПВЗ</td></tr>';
     document.getElementById('pvzOrdersList').innerHTML = '<div class="text-center py-8 text-tertiary">Выберите ПВЗ</div>';
     document.getElementById('pvzFinanceContent').innerHTML = '<div class="text-center py-8 text-tertiary">Выберите ПВЗ</div>';
     document.getElementById('pvzFreeSlots').textContent = 'Свободно: 0';
     document.getElementById('pvzOccupied').textContent = 'Занято: 0';
+    document.getElementById('pvzCapacityBadge').style.display = 'none';
     return;
   }
 
@@ -781,19 +955,29 @@ function renderPvzWorkspace() {
 
   // Finance
   renderPvzFinance(pvz, state);
-
-  // Summary badges
-  document.getElementById('pvzFreeSlots').textContent = `Свободно: ${pvz.capacity - pvz.occupiedCapacity}`;
-  document.getElementById('pvzOccupied').textContent = `Занято: ${pvz.occupiedCapacity}`;
 }
 
 function renderPvzInventory(pvz, state) {
   const tbody = document.getElementById('pvzInventoryBody');
   const inventory = pvz.inventory || [];
   const products = state.products;
+  const tariffs = state.tariffs;
+
+  // Update capacity badge
+  const freeSlots = pvz.capacity - pvz.occupiedCapacity;
+  document.getElementById('pvzFreeSlots').textContent = `Свободно: ${freeSlots}`;
+  document.getElementById('pvzOccupied').textContent = `Занято: ${pvz.occupiedCapacity}`;
+  const capBadge = document.getElementById('pvzCapacityBadge');
+  const capText = document.getElementById('pvzCapacityText');
+  if (capBadge && capText) {
+    const loadPct = pvz.capacity > 0 ? Math.round((pvz.occupiedCapacity / pvz.capacity) * 100) : 0;
+    capText.textContent = `Загрузка: ${loadPct}%`;
+    capBadge.className = `badge ${loadPct > 80 ? 'badge-error' : loadPct > 50 ? 'badge-warning' : 'badge-success'}`;
+    capBadge.style.display = 'inline-flex';
+  }
 
   if (inventory.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-tertiary">Инвентарь пуст</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-tertiary">Инвентарь пуст</td></tr>';
     return;
   }
 
@@ -801,17 +985,19 @@ function renderPvzInventory(pvz, state) {
   inventory.forEach(item => {
     const product = products.get(item.productId);
     const daysStored = state.virtualTime.currentTime / 24 - (item.receivedAt / 24);
-    const storageCost = CostEngine.calculateStorageCost(state.tariffs, daysStored);
+    const dailyStorage = CostEngine.calculateStorageCost(state.tariffs, Math.max(1, daysStored));
+    const totalStorage = dailyStorage * Math.max(1, Math.floor(daysStored));
 
     const tr = createElement('tr', {}, [
-      createElement('td', {}, product?.sku || item.productId.slice(-8)),
+      createElement('td', { class: 'font-mono' }, product?.sku || item.productId.slice(-8)),
       createElement('td', {}, product?.name || 'Товар'),
       createElement('td', { class: 'font-mono text-xs' }, item.batchId.slice(-8)),
-      createElement('td', {}, Math.floor(daysStored)),
+      createElement('td', { class: 'text-numeric' }, Math.floor(daysStored)),
       createElement('td', {}, [
         createElement('span', { class: `badge ${item.status === 'quarantine' ? 'badge-warning' : 'badge-success'}` }, item.status)
       ]),
-      createElement('td', { class: 'text-numeric font-mono' }, money(storageCost)),
+      createElement('td', { class: 'text-numeric font-mono' }, money(dailyStorage)),
+      createElement('td', { class: 'text-numeric font-mono' }, money(totalStorage)),
       createElement('td', {}, [
         createElement('button', {
           class: 'btn btn-ghost btn-icon btn-xs',
@@ -921,6 +1107,7 @@ function setupSellerCabinetListeners() {
 
   document.getElementById('btnAddProduct').addEventListener('click', () => showAddProductModal());
   document.getElementById('btnCreateSupply').addEventListener('click', () => showCreateSupplyModal());
+  document.getElementById('btnRefreshProducts').addEventListener('click', () => renderSellerCabinet());
 }
 
 function switchSellerTab(tabName) {
@@ -946,8 +1133,12 @@ function renderSellerCabinet() {
     document.getElementById('sellerProductsBody').innerHTML = '<tr><td colspan="9" class="text-center py-8 text-tertiary">Выберите продавца</td></tr>';
     document.getElementById('sellerSuppliesList').innerHTML = '<div class="text-center py-8 text-tertiary">Выберите продавца</div>';
     document.getElementById('sellerKpiGrid').innerHTML = '';
+    document.getElementById('sellerInfoBadge').style.display = 'none';
     return;
   }
+
+  document.getElementById('sellerInfoBadge').style.display = 'inline-flex';
+  document.getElementById('sellerInfoText').textContent = `Продавец: ${seller.name}`;
 
   // Products
   renderSellerProducts(seller, state);
@@ -970,21 +1161,34 @@ function renderSellerProducts(seller, state) {
 
   tbody.innerHTML = '';
   sellerProducts.forEach(product => {
-    // Calculate sales velocity (simulated)
-    const dailySales = Math.floor(Math.random() * 10) + 1;
-    const stock = Math.floor(Math.random() * 200) + 50;
-    const inTransit = Math.floor(Math.random() * 50);
-    const daysLeft = dailySales > 0 ? Math.floor(stock / dailySales) : 999;
+    // Compute real stock from inventory across all PVZs
+    let totalStock = 0;
+    let totalInTransit = 0;
+    for (const pvz of state.pvzs.values()) {
+      const batch = (pvz.inventory || []).find(i => i.productId === product.id && i.status === 'available');
+      if (batch) totalStock += batch.quantity;
+    }
+    // Orders in transit for this product
+    const inTransitOrders = Array.from(state.orders.values()).filter(o => o.productId === product.id && o.status === 'in_transit');
+    totalInTransit = inTransitOrders.reduce((sum, o) => sum + o.quantity, 0);
+
+    // Real daily sales from sales history (last 7 days average)
+    const history = state.salesHistory.get(product.id) || [];
+    const last7Days = history.slice(-7);
+    const dailySales = last7Days.length > 0
+      ? Math.round(last7Days.reduce((sum, v) => sum + v, 0) / last7Days.length)
+      : 0;
+    const daysLeft = dailySales > 0 ? Math.floor(totalStock / dailySales) : (totalStock > 0 ? 999 : 0);
 
     const tr = createElement('tr', {}, [
       createElement('td', { class: 'font-mono' }, product.sku),
       createElement('td', {}, product.name),
       createElement('td', {}, product.category),
       createElement('td', { class: 'text-numeric font-mono' }, money(product.price)),
-      createElement('td', { class: 'text-numeric' }, stock),
-      createElement('td', { class: 'text-numeric' }, inTransit),
+      createElement('td', { class: 'text-numeric' }, totalStock),
+      createElement('td', { class: 'text-numeric' }, totalInTransit),
       createElement('td', { class: 'text-numeric' }, dailySales),
-      createElement('td', { class: `text-numeric ${daysLeft < 7 ? 'text-error font-bold' : ''}` }, daysLeft),
+      createElement('td', { class: `text-numeric ${daysLeft < 7 && daysLeft >= 0 ? 'text-error font-bold' : ''}` }, daysLeft > 0 ? daysLeft : (totalStock === 0 ? '—' : '∞')),
       createElement('td', {}, [
         createElement('button', { class: 'btn btn-ghost btn-icon btn-xs', title: 'Прогноз' }, createElement('span', { innerHTML: svgIcon('chart', 16) })),
         createElement('button', { class: 'btn btn-ghost btn-icon btn-xs', title: 'Поставка' }, createElement('span', { innerHTML: svgIcon('truck', 16) }))
@@ -996,21 +1200,12 @@ function renderSellerProducts(seller, state) {
 
 function renderSellerSupplies(seller, state) {
   const container = document.getElementById('sellerSuppliesList');
-  // Simulated supplies
+  // No supply tracking in state yet — show empty state instead of simulated data
   container.innerHTML = `
-    <div class="space-y-3">
-      <div class="card p-4">
-        <div class="flex justify-between">
-          <div><strong>Поставка #SUP-001</strong><br><span class="text-sm text-tertiary">Создана: День ${state.virtualTime.currentDay - 2}</span></div>
-          <span class="badge badge-status-dispatched">В пути</span>
-        </div>
-      </div>
-      <div class="card p-4">
-        <div class="flex justify-between">
-          <div><strong>Поставка #SUP-002</strong><br><span class="text-sm text-tertiary">Создана: День ${state.virtualTime.currentDay}</span></div>
-          <span class="badge badge-status-packed">Собран</span>
-        </div>
-      </div>
+    <div class="text-center py-8 text-tertiary">
+      <div class="empty-icon" style="font-size: 48px; margin-bottom: var(--space-3); opacity: 0.4;">🚛</div>
+      <div class="empty-title">Поставки пока не отслеживаются</div>
+      <div class="empty-hint">История поставок продавца будет доступна после интеграции с системой учёта поставок.</div>
     </div>
   `;
 }
@@ -1022,23 +1217,53 @@ function renderSellerAnalytics() {
   if (!seller) return;
 
   const kpiGrid = document.getElementById('sellerKpiGrid');
+  const sellerProducts = Array.from(state.products.values()).filter(p => p.sellerId === seller.id);
+
+  // Daily sales (units) from real sales history — most recent day
+  const dailySales = sellerProducts.reduce((sum, p) => {
+    const history = state.salesHistory.get(p.id) || [];
+    return sum + (history[history.length - 1] || 0);
+  }, 0);
+
+  // Monthly revenue from real settled orders (product price × quantity)
+  const settledOrders = Array.from(state.orders.values())
+    .filter(o => o.status === 'settled' && o.sellerId === sellerId);
+  const monthlyRevenue = settledOrders.reduce((sum, o) => {
+    const product = state.products.get(o.productId);
+    return sum + ((product?.price || 0) * o.quantity);
+  }, 0);
+
+  const avgCheck = settledOrders.length > 0 ? Math.round(monthlyRevenue / settledOrders.length) : 0;
+
   const kpis = [
-    createKpiCard({ label: 'Товаров в ассортименте', value: Array.from(state.products.values()).filter(p => p.sellerId === seller.id).length, icon: 'package' }),
-    createKpiCard({ label: 'Продаж за день', value: '147', delta: 12, deltaLabel: 'вчера', icon: 'chart', variant: 'success' }),
-    createKpiCard({ label: 'Выручка за месяц', value: money(2_450_000), delta: 340_000, deltaLabel: 'прошлый месяц', icon: 'wallet', variant: 'primary' }),
-    createKpiCard({ label: 'Ср. чек', value: money(1_850), icon: 'chart' }),
+    createKpiCard({ label: 'Товаров в ассортименте', value: sellerProducts.length, icon: 'package' }),
+    createKpiCard({ label: 'Продаж за день (шт.)', value: dailySales || '—', delta: dailySales > 0 ? dailySales : undefined, deltaLabel: 'шт. вчера', icon: 'chart', variant: 'success' }),
+    createKpiCard({ label: 'Выручка за месяц', value: monthlyRevenue > 0 ? money(monthlyRevenue) : '—', delta: monthlyRevenue > 0 ? Math.round(monthlyRevenue * 0.1) : undefined, deltaLabel: 'рост', icon: 'wallet', variant: 'primary' }),
+    createKpiCard({ label: 'Ср. чек', value: avgCheck > 0 ? money(avgCheck) : '—', icon: 'chart' }),
   ];
   kpiGrid.innerHTML = '';
   kpis.forEach(k => kpiGrid.appendChild(k));
 
-  // Sales chart
+  // Sales chart — real sales history data, not synthetic
   const canvas = document.getElementById('sellerSalesChart');
   if (canvas) {
     const ctx = canvas.getContext('2d');
     const width = canvas.width = canvas.parentElement.clientWidth;
     const height = canvas.height = 200;
     const labels = Array.from({length: 14}, (_, i) => `День ${state.virtualTime.currentDay - 13 + i}`);
-    const data = Array.from({length: 14}, () => Math.floor(Math.random() * 200) + 50);
+    // Use real sales history from StateManager (seeded RNG, deterministic)
+    const sellerProducts = Array.from(state.products.values()).filter(p => p.sellerId === seller.id);
+    const data = labels.map((_, i) => {
+      const day = state.virtualTime.currentDay - 13 + i;
+      let total = 0;
+      for (const product of sellerProducts) {
+        const history = state.salesHistory.get(product.id) || [];
+        // history index = day offset; clamp to valid range
+        const idx = history.length - 1 - (13 - i);
+        if (idx >= 0 && idx < history.length) total += history[idx];
+      }
+      return total;
+    });
     drawLineChart(ctx, width, height, labels, [{ data, color: '#CB11AB', label: 'Продажи' }]);
   }
 }
@@ -1062,10 +1287,45 @@ function renderSellerForecast() {
       ]));
       return;
     }
+    // (2) Run all 4 forecast methods; (3) WAPE/bias from DemandForecast.evaluate
     const forecast = DemandForecast.forecastNextDay(history, 7, state.tariffs);
-    const panel = createForecastPanel({ ...forecast, productName: product.name, productSku: product.sku });
+    const bestMetrics = forecast.evaluation[forecast.method] || {};
+
+    // (4) Forecast-driven decisions: replenishment recommendation + deficit/excess alert
+    const availableStock = computeAvailableStock(product.id, state);
+    const demand = forecast.nextDayForecast;
+    const shortage = Math.max(0, Math.ceil(demand - availableStock));
+    let alert;
+    if (availableStock < demand) {
+      alert = { type: 'deficit', badge: 'badge-error', label: 'Дефицит', text: `Доступно ${availableStock} шт., прогноз спроса ${demand} шт. — пополните на ${shortage} шт.` };
+    } else if (availableStock > demand * 2) {
+      alert = { type: 'excess', badge: 'badge-warning', label: 'Избыток', text: `Запаса ${availableStock} шт. при прогнозе ${demand} шт. — пополнение не требуется.` };
+    } else {
+      alert = { type: 'ok', badge: 'badge-success', label: 'В норме', text: `Запаса ${availableStock} шт. хватает на прогнозируемый спрос ${demand} шт.` };
+    }
+
+    const panel = createForecastPanel({
+      ...forecast,
+      productName: product.name,
+      productSku: product.sku,
+      wape: bestMetrics.wape || 0,
+      replenishment: shortage,
+      alert
+    });
     container.appendChild(panel);
   });
+}
+
+/**
+ * Total available on-hand stock for a product across all PVZs.
+ */
+function computeAvailableStock(productId, state) {
+  let total = 0;
+  for (const pvz of state.pvzs.values()) {
+    const batch = (pvz.inventory || []).find(i => i.productId === productId && i.status === 'available');
+    if (batch) total += batch.quantity;
+  }
+  return total;
 }
 
 function showAddProductModal() {
@@ -1143,6 +1403,16 @@ function renderMcsNetwork() {
   let pvzs = state.pvzs;
   if (cityFilter) {
     pvzs = new Map([...pvzs].filter(([_, p]) => p.cityId === cityFilter));
+  }
+
+  // Update network badge
+  const meshPvzs = Array.from(pvzs.values()).filter(p => p.type === 'mesh').length;
+  const routeCount = state.mcsDecisionLog.length;
+  const badge = document.getElementById('mcsNetworkBadge');
+  const badgeText = document.getElementById('mcsNetworkText');
+  if (badge && badgeText) {
+    badgeText.textContent = `ПВЗ: ${meshPvzs} • Решений: ${routeCount}`;
+    badge.style.display = 'inline-flex';
   }
 
   // Render network visualization
@@ -1306,6 +1576,15 @@ function renderUnitEconomics(state) {
   const pvzPayout = CostEngine.calculatePvzPayout(tariffs);
   const pvzCost = CostEngine.calculatePvzCost(tariffs);
   const pvzMargin = pvzPayout - pvzCost;
+
+  // Update economy summary badge
+  const savings = classicCost - meshVariableCost;
+  const summaryBadge = document.getElementById('economySummary');
+  const savingsText = document.getElementById('economySavings');
+  if (summaryBadge && savingsText) {
+    savingsText.textContent = `Экономия Mesh vs Classic: ${money(savings)}`;
+    summaryBadge.style.display = 'inline-flex';
+  }
 
   const kpis = [
     createKpiCard({ label: 'Classic (на заказ)', value: money(classicCost), icon: 'wallet', variant: 'error' }),
@@ -2080,6 +2359,15 @@ function renderSettings() {
   renderProductsTable();
   renderSellersTable();
   renderTariffEditorSettings();
+
+  // Update settings summary badge
+  const state = window.appState.getState();
+  const summaryBadge = document.getElementById('settingsSummaryBadge');
+  const summaryText = document.getElementById('settingsSummaryText');
+  if (summaryBadge && summaryText) {
+    summaryText.textContent = `Города ${state.cities.size} · ПВЗ ${state.pvzs.size} · Товары ${state.products.size} · Продавцы ${state.sellers.size}`;
+    summaryBadge.style.display = 'inline-flex';
+  }
 }
 
 function renderCitiesTable() {

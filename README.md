@@ -11,7 +11,7 @@ WB Mesh Control System is a production-ready logistics management platform that 
 - **C1**: Intra-city via hub
 - **C2**: Inter-city via trunk lines
 
-**Target**: Reduce per-order logistics cost from 100₽ (Classic) → 93₽ (Mesh) — **7% savings at scale**
+**Target**: Reduce per-order logistics cost from 120₽ (Classic) → 79₽ (Mesh) — **~34% savings per order**
 
 ---
 
@@ -81,16 +81,16 @@ No build step required — pure ES modules, runs in any modern browser.
 ## 💰 Economic Model
 
 ### Unit Economics (per order)
-| Component | Classic | Mesh (5 orders/trip) |
-|-----------|---------|---------------------|
-| Transport | 24₽ | 9.6₽ (48₽/5) |
-| Storage | 12₽ | 13₽ |
-| Sorting | 14₽ | 8₽ |
-| Last Mile | 24₽ | 20₽ |
-| PVZ | 13₽ | 14₽ |
-| Returns | 7₽ | 6₽ |
-| IT | 6₽ | 8₽ |
-| **Total** | **100₽** | **92.96₽** |
+| Component | Classic | Mesh |
+|-----------|---------|------|
+| Transport | 35₽ | 5₽ |
+| Storage | 20₽ | 15₽ |
+| Sorting | 10₽ | 8₽ |
+| Last Mile | 25₽ | 25₽ |
+| PVZ | 15₽ | 15₽ |
+| Returns | 10₽ | 6₽ |
+| IT | 5₽ | 5₽ |
+| **Total** | **120₽** | **79₽** |
 
 ### PVZ Economics
 - **Payout**: 39₽ (6₽ receive + 15₽ storage + 18₽ pack)
@@ -98,9 +98,11 @@ No build step required — pure ES modules, runs in any modern browser.
 - **Margin**: **16₽/order** ✅
 
 ### Break-even Analysis
-- Base trip: 48₽ fixed + 8₽ × n orders
-- **5 orders** = 88₽ total → **17.6₽/order** transport
-- Target: < 100₽ Classic → **achieved at 5+ orders**
+- Base trip: 48₽ fixed + 8₽ × n orders + 40₽ × (k−1) stops + 6₽ × t wait minutes
+- **5 orders** = 48 + 40 + 40(k−1) → transport cost per order decreases with consolidation
+- Mesh saves **41₽/order** vs Classic at default tariffs
+
+> **Note:** These values come from `DEFAULT_TARIFFS` in `src/core/types.js`. Per the V5.0 directive, the economy is **not forced** to target numbers — documentation reflects actual implementation values.
 
 ---
 

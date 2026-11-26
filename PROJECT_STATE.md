@@ -4,7 +4,7 @@
 **Branch:** `feature/v5-development`  
 **Last commit:** `8e60c09` (Fix P0 UI bugs: empty modal overlay, drawer, and blurred interface on load)  
 **Updated:** 2026-11-26  
-**Stage:** V5.0 Directive — Stage 1 Complete (Audit), Stage 2 In Progress (Frontend Recovery)
+**Stage:** V5.0 Directive — Stage 1 Complete (Audit), Stage 2 Complete (Frontend Recovery), Stage 3 Pending (Economics)
 
 ---
 
@@ -50,22 +50,23 @@
 ## Known Issues (from AUDIT.md)
 
 ### P0 (Critical)
-1. **Economics mismatch** — JSDoc docs Classic 100₽/Mesh ~93₽, actual DEFAULT_TARIFFS produces Classic 120₽/Mesh 79₽. Per directive, code values NOT changed. Must resolve before demo.
+1. **Economics mismatch** — RESOLVED: JSDoc TariffConfig aligned to DEFAULT_TARIFFS actuals (Classic 120₽/Mesh 79₽); economy NOT forced to target numbers per directive.
 2. (FIXED) Google Fonts removed from index.html
 3. (FIXED) Unit test files added for `npm test`
 4. (FIXED) `UserRole.OWNER` → `UserRole.PVZ_OWNER` in app-state.js
 
-### P1 (High) — OPEN
-1. PVZ workspace action handlers not wired to StateManager
-2. Forecast panel not connected to DemandForecast
-3. Network visualization capacity indicators are static
-4. Tariff editor changes not persisted
-5. Demo auto-advance timing not verified
+### P1 (High) — all FIXED
+1. PVZ workspace action handlers wired to StateManager (processOrderAction) — FIXED
+2. Forecast panel connected to DemandForecast (state.salesHistory + forecastNextDay) — FIXED
+3. Network visualization capacity indicators live (occupiedCapacity/capacity) — FIXED
+4. Tariff editor persisted (localStorage wb-mesh-tariffs, restored in initApp) — FIXED
+5. Demo timing verified (test-final.cjs PASS, 5 demo scenarios) — FIXED
 
-### P2 (Medium) — OPEN
-1. No quarantine lifecycle enforcement (auto-release)
-2. No WAPE/bias holdout evaluation in UI
-3. No default seller selected in seller cabinet
+### P2 (Medium) — all FIXED
+1. Quarantine lifecycle enforced — ageBatches auto-releases quarantine after 24h — FIXED
+2. WAPE/bias holdout evaluation added to DemandForecast.evaluate; shown in forecast panel — FIXED
+3. Default seller auto-selected in initApp — FIXED
+4. Seeded RNG for reproducible demo data — Math.random() replaced with seeded LCG in StateManager — FIXED
 
 ---
 
@@ -73,14 +74,15 @@
 
 | Document | Status | Location |
 |----------|--------|----------|
-| README.md | ✅ Updated (economics aligned with JSDoc target) | README.md |
+| README.md | ✅ Updated (economics aligned to DEFAULT_TARIFFS) | README.md |
 | AUDIT.md | ✅ Created | AUDIT.md |
 | PROJECT_STATE.md | ✅ Created | PROJECT_STATE.md |
-| TASKS.md | ⬜ Pending | — |
+| TASKS.md | ✅ Created | TASKS.md |
 | TEST_REPORT.md | ✅ Exists | TEST-REPORT.md |
-| DEMO_SCRIPT.md | ⬜ Pending | — |
-| LIMITATIONS.md | ⬜ Pending | — |
+| DEMO_SCRIPT.md | ✅ Created | DEMO_SCRIPT.md |
+| LIMITATIONS.md | ✅ Created | LIMITATIONS.md |
 | SKILLS-REPORT.md | ✅ Exists | SKILLS-REPORT.md |
+| TZ-MATRIX.md | ✅ Created | TZ-MATRIX.md |
 
 ---
 

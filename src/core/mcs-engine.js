@@ -562,6 +562,7 @@ export class InventoryManager {
     if (item) {
       item.quantity += quantity;
       item.status = 'quarantine';
+      item.daysInQuarantine = 0;
     } else {
       pvz.inventory = pvz.inventory || [];
       pvz.inventory.push({
@@ -570,7 +571,8 @@ export class InventoryManager {
         quantity,
         batchId,
         receivedAt: 0,
-        status: 'quarantine'
+        status: 'quarantine',
+        daysInQuarantine: 0
       });
     }
     pvz.occupiedCapacity += quantity;
@@ -607,9 +609,21 @@ export class InventoryManager {
       if (!pvz.inventory) continue;
       for (const item of pvz.inventory) {
         item.daysStored = (item.daysStored || 0) + hoursPerStep / 24;
+
+        // Quarantine lifecycle: auto-release after 24 hours in quarantine
+        if (item.status === 'quarantine') {
+          item.daysInQuarantine = (item.daysInQuarantine || 0) + hoursPerStep / 24;
+          if (item.daysInQuarantine >= 1) {
+            item.status = 'available';
+            item.daysInQuarantine = 0;
+          }
+          continue;
+        }
+
         // Auto-move to quarantine if max storage exceeded
         if (item.daysStored > 60 && item.status === 'available') {
           item.status = 'quarantine';
+          item.daysInQuarantine = 0;
         }
       }
     }
@@ -696,10 +710,13 @@ export class DemandForecast {
 
     const results = {};
     for (const [name, forecast] of Object.entries(methods)) {
-      let mae = 0, bias = 0, hits = 0, falseDispatch = 0, missed = 0;
+      let mae = 0, bias = 0, wapeNum = 0, wapeDen = 0, hits = 0, falseDispatch = 0, missed = 0;
       for (let i = 0; i < test.length; i++) {
         const error = forecast - test[i];
-        mae += Math.abs(error);
+        const absError = Math.abs(error);
+        mae += absError;
+        wapeNum += absError;
+        wapeDen += Math.abs(test[i]);
         bias += error;
         if (Math.abs(error) <= 2) hits++;
         if (forecast > test[i] + 2) falseDispatch++;
@@ -708,6 +725,7 @@ export class DemandForecast {
       results[name] = {
         mae: mae / test.length,
         bias: bias / test.length,
+        wape: wapeDen ? wapeNum / wapeDen : 0,
         hitRate: hits / test.length,
         falseDispatch,
         missed

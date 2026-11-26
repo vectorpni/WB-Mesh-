@@ -392,11 +392,26 @@ export function createForecastPanel(forecast) {
       createElement('div', { class: 'grid grid-cols-3 gap-4 mb-4' }, [
         createKpiCard({ label: 'След. день', value: forecast.nextDayForecast, icon: 'chart' }),
         createKpiCard({ label: 'Консервативно', value: forecast.conservativeEstimate, variant: 'warning', icon: 'alert' }),
-        createKpiCard({ label: 'MAE', value: forecast.mae.toFixed(2), icon: 'chart' })
+        createKpiCard({ label: 'MAE', value: forecast.mae.toFixed(2), icon: 'chart' }),
+        createKpiCard({ label: 'WAPE', value: `${((forecast.wape || 0) * 100).toFixed(1)}%`, variant: (forecast.wape || 0) > 0.2 ? 'warning' : 'success', icon: 'chart' })
       ]),
       createElement('div', { class: 'grid grid-cols-2 gap-4 mb-4' }, [
         createKpiCard({ label: 'Смещение', value: forecast.bias.toFixed(2), variant: forecast.bias > 0 ? 'warning' : 'success' }),
         createKpiCard({ label: 'Hit Rate', value: `${(forecast.hitRate * 100).toFixed(1)}%`, icon: 'check' })
+      ]),
+      createElement('div', { class: 'mb-4' }, [
+        createElement('h4', { class: 'font-semibold text-secondary mb-2' }, 'Решение по пополнению'),
+        createElement('div', { class: 'bg-base p-3 rounded-lg border border-border' }, [
+          createElement('div', { class: 'flex justify-between items-start mb-1' }, [
+            createElement('span', { class: 'font-medium' }, 'Рекомендация'),
+            createElement('span', { class: `badge ${forecast.alert.badge}` }, forecast.alert.label)
+          ]),
+          createElement('p', { class: 'text-sm text-tertiary mt-1' }, forecast.alert.text),
+          forecast.replenishment > 0 ? createElement('div', { class: 'mt-2 flex justify-between text-sm font-mono' }, [
+            createElement('span', {}, 'Пополнить:'),
+            createElement('span', { class: 'text-numeric font-bold' }, `${forecast.replenishment} шт.`)
+          ]) : null
+        ].filter(Boolean))
       ]),
       createElement('div', { class: 'mb-4' }, [
         createElement('h4', { class: 'font-semibold text-secondary mb-2' }, 'Сравнение методов'),
@@ -404,19 +419,21 @@ export function createForecastPanel(forecast) {
           createElement('table', { class: 'table' }, [
             createElement('thead', {}, [
               createElement('tr', {}, [
-                'Метод', 'MAE', 'Смещение', 'Hit Rate', 'Ложные рейсы', 'Пропуски'
+                'Метод', 'WAPE', 'MAE', 'Смещение', 'Hit Rate', 'Ложные рейсы', 'Пропуски'
               ].map(h => createElement('th', {}, h)))
             ]),
-            createElement('tbody', {}, Object.entries(forecast.allMethods || {}).map(([method, metrics]) =>
-              createElement('tr', { class: method === forecast.method ? 'bg-info-light/50' : '' }, [
+            createElement('tbody', {}, Object.entries(forecast.allMethods || {}).map(([method]) => {
+              const metrics = forecast.evaluation[method] || {};
+              return createElement('tr', { class: method === forecast.method ? 'bg-info-light/50' : '' }, [
                 createElement('td', { class: 'font-medium' }, method),
-                createElement('td', { class: 'text-numeric font-mono' }, metrics.mae.toFixed(2)),
-                createElement('td', { class: 'text-numeric font-mono' }, metrics.bias.toFixed(2)),
-                createElement('td', { class: 'text-numeric font-mono' }, `${(metrics.hitRate * 100).toFixed(1)}%`),
-                createElement('td', { class: 'text-numeric font-mono' + (metrics.falseDispatch > 0 ? ' text-error' : '') }, metrics.falseDispatch),
-                createElement('td', { class: 'text-numeric font-mono' + (metrics.missed > 0 ? ' text-warning' : '') }, metrics.missed)
-              ])
-            ))
+                createElement('td', { class: 'text-numeric font-mono' }, `${((metrics.wape || 0) * 100).toFixed(1)}%`),
+                createElement('td', { class: 'text-numeric font-mono' }, metrics.mae?.toFixed(2) ?? '—'),
+                createElement('td', { class: 'text-numeric font-mono' }, metrics.bias?.toFixed(2) ?? '—'),
+                createElement('td', { class: 'text-numeric font-mono' }, `${((metrics.hitRate || 0) * 100).toFixed(1)}%`),
+                createElement('td', { class: 'text-numeric font-mono' + (metrics.falseDispatch > 0 ? ' text-error' : '') }, metrics.falseDispatch ?? '—'),
+                createElement('td', { class: 'text-numeric font-mono' + (metrics.missed > 0 ? ' text-warning' : '') }, metrics.missed ?? '—')
+              ]);
+            }))
           ])
         ])
       ])
@@ -523,7 +540,8 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
 
     // Capacity indicator for mesh PVZs
     if (isMesh) {
-      const load = pvz.occupiedCapacity / pvz.capacity || 0;
+      const capacity = pvz.capacity ?? 0;
+      const load = capacity > 0 ? (pvz.occupiedCapacity ?? 0) / capacity : 0;
       const indicatorRadius = radius + 6;
       const circumference = 2 * Math.PI * indicatorRadius;
       const offset = circumference * (1 - load);
@@ -549,6 +567,18 @@ export function createNetworkVisualization(cities, pvzs, highlightedRoute = null
         transform: `rotate(-90 ${pvz.coordinates?.x ?? 0} ${pvz.coordinates?.y ?? 0})`,
         class: 'capacity-indicator'
       }));
+
+      // Live occupancy label: occupiedCapacity / capacity from state.pvzs
+      svg.appendChild(createElementNS('text', {
+        x: pvz.coordinates?.x ?? 0,
+        y: (pvz.coordinates?.y ?? 0) + radius + 26,
+        'text-anchor': 'middle',
+        'font-size': '9',
+        'font-family': 'Inter, sans-serif',
+        'font-weight': '600',
+        fill: load > 0.8 ? '#EF4444' : (load > 0.5 ? '#F59E0B' : '#10B981'),
+        class: 'pvz-occupancy'
+      }, `${Math.round(pvz.occupiedCapacity ?? 0)}/${pvz.capacity ?? 0}  ${Math.round(load * 100)}%`));
     }
   }
 

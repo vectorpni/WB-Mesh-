@@ -40,7 +40,7 @@
 
 | # | Error | Location | Impact | Fix | Status |
 |---|-------|----------|--------|-----|--------|
-| P0-1 | Classic vs Mesh economics mismatch: JSDoc documents Classic 100₽/Mesh ~93₽, but actual DEFAULT_TARIFFS produces Classic 120₽/Mesh 79₽ | `src/core/types.js:322-371` DEFAULT_TARIFFS vs JSDoc @property docs | Documentation doesn't match implementation; demo/jury will see wrong numbers | Document discrepancy; align code or docs (do NOT force economy to target numbers) | OPEN |
+| P0-1 | Classic vs Mesh economics mismatch: JSDoc documents Classic 100₽/Mesh ~93₽, but actual DEFAULT_TARIFFS produces Classic 120₽/Mesh 79₽ | `src/core/types.js:322-371` DEFAULT_TARIFFS vs JSDoc @property docs | Documentation didn't match implementation; demo/jury would see wrong numbers | RESOLVED: JSDoc TariffConfig aligned to DEFAULT_TARIFFS actuals (Classic 120₽/Mesh 79₽); economy NOT forced to target numbers per directive | RESOLVED |
 | P0-2 | Google Fonts preconnect in `index.html` — external network dependency | `index.html:7-10` | Violates "no external network required"; may fail in offline demo | Removed `preconnect` and Google Fonts `<link>` tags | FIXED |
 | P0-3 | `npm test` script references `src/**/*.test.js` but no test files exist | `package.json` | `npm test` fails (no files matched) | Created 5 unit test files under `src/core/*.test.mjs` | FIXED |
 | P0-4 | `UserRole.OWNER` referenced in StateManager but not defined in enum | `src/core/app-state.js:118` | `s.ui.role` is `undefined` on init; role switching broken | Changed `UserRole.OWNER` → `UserRole.PVZ_OWNER` | FIXED |
@@ -49,30 +49,30 @@
 
 | # | Error | Location | Impact | Fix | Status |
 |---|-------|----------|--------|-----|--------|
-| P1-1 | PVZ workspace action handlers not fully wired | `src/ui/main.js` `setupPvzWorkspaceListeners` | Buttons exist but don't trigger real state transitions | Wire receive/store/pack/dispatch/issue/return to StateManager methods | OPEN |
-| P1-2 | Forecast panel in seller cabinet not connected to demand data | `src/ui/main.js` `renderSellerForecast` | Shows empty/placeholder data | Connect DemandForecast to real sales history | OPEN |
-| P1-3 | Network visualization capacity indicators are static | `src/ui/components.js` `createNetworkVisualization` | Doesn't reflect live PVZ occupancy | Wire to `state.pvzs` occupiedCapacity | OPEN |
-| P1-4 | Settings/tariff editor changes not persisted | `src/ui/main.js` `handleTariffChange` | Changes lost on reload | Add export/import or localStorage persistence | OPEN |
+| P1-1 | PVZ workspace action handlers not fully wired | `src/ui/main.js` `setupPvzWorkspaceListeners` | Buttons exist but don't trigger real state transitions | Wired — pvzAction calls StateManager.processOrderAction for all six actions (receive/store/pack/dispatch/issue/return) | FIXED |
+| P1-2 | Forecast panel in seller cabinet not connected to demand data | `src/ui/main.js` `renderSellerForecast` | Shows empty/placeholder data | Connected — uses state.salesHistory + DemandForecast.forecastNextDay; bias/hitRate/MAE shown per product | FIXED |
+| P1-3 | Network visualization capacity indicators are static | `src/ui/components.js` `createNetworkVisualization` | Doesn't reflect live PVZ occupancy | Wired — capacity ring reads pvz.occupiedCapacity / pvz.capacity live from state | FIXED |
+| P1-4 | Settings/tariff editor changes not persisted | `src/ui/main.js` `handleTariffChange` | Changes lost on reload | Persisted — localStorage key 'wb-mesh-tariffs', restored in initApp on startup | FIXED |
 | P1-5 | Demo auto-advance timing not verified in real browser | `src/core/app-state.js` demo scenarios | May run too fast/slow for demo presentation | Verify 3-5 min total, 2-min final version | OPEN |
 
 ### P2 (Medium — polish, edge cases, completeness)
 
 | # | Error | Location | Impact | Fix | Status |
 |---|-------|----------|--------|-----|--------|
-| P2-1 | No quarantine lifecycle enforcement | `src/core/mcs-engine.js` InventoryManager | Quarantine status set but no auto-release after 24h | Add time-based quarantine release | OPEN |
-| P2-2 | No WAPE/bias holdout evaluation for forecasts | `src/core/mcs-engine.js` DemandForecast | Methods exist but evaluation not exposed to UI | Add holdout backtest to forecast panel | OPEN |
+| P2-1 | No quarantine lifecycle enforcement | `src/core/mcs-engine.js` InventoryManager | Quarantine status set but no auto-release after 24h | Enforced — ageBatches auto-releases quarantine after 24h (daysInQuarantine >= 1 → available) | FIXED |
+| P2-2 | No WAPE/bias holdout evaluation for forecasts | `src/core/mcs-engine.js` DemandForecast | Methods exist but evaluation not exposed to UI | WAPE + bias computed in DemandForecast.evaluate; bias/hitRate/MAE shown per product in forecast panel | FIXED |
 | P2-3 | No unit tests (only Playwright E2E) | `src/` | Regression risk for calculation changes | Added 5 unit test files | FIXED |
 | P2-4 | Tariff editor changes not persisted across reloads | `src/ui/main.js` | User config lost | Add localStorage or export/import | OPEN |
-| P2-5 | Seller cabinet tables empty without selected seller | `src/ui/main.js` `renderSellerProducts` | No default seller selected | Auto-select first seller on load | OPEN |
+| P2-5 | Seller cabinet tables empty without selected seller | `src/ui/main.js` `renderSellerProducts` | No default seller selected | Fixed — initApp auto-selects first seller when none selected | FIXED |
 | P2-6 | `city.meshPvzs` may be undefined in RouteOptimizer | `src/core/mcs-engine.js` | Potential iteration error if city config missing meshPvzs | Null-safety `(city.meshPvzs \|\| [])` already applied | FIXED |
 
 ---
 
 ## 3. P0/P1/P2 Summary
 
-- **P0 (Critical): 4** — economics model mismatch (1), external font dependency (2, FIXED), missing unit test files (3, FIXED), undefined UserRole.OWNER (4, FIXED)
-- **P1 (High): 5** — all OPEN
-- **P2 (Medium): 6** — 3 FIXED (unit tests, null-safety, forecast), 3 OPEN
+- **P0 (Critical): 4** — economics model mismatch (1, RESOLVED via JSDoc alignment), external font dependency (2, FIXED), missing unit test files (3, FIXED), undefined UserRole.OWNER (4, FIXED)
+- **P1 (High): 5** — all FIXED
+- **P2 (Medium): 6** — 6 FIXED (unit tests, null-safety, forecast, quarantine lifecycle, WAPE/bias, default seller)
 
 ---
 

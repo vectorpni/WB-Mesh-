@@ -21,6 +21,28 @@ import {
 import { MCS } from './mcs-engine.js';
 
 // ============================================
+// SEEDED RNG — reproducible demo data (Stage 13)
+// ============================================
+
+/**
+ * Deterministic pseudo-random generator (LCG).
+ * Fixed seed keeps demo scenarios identical across runs.
+ * @type {number}
+ */
+let _rngSeed = 0x5EED_CAFE;
+
+/** Set the RNG seed (called by demo scenarios for reproducibility). */
+export function setDemoSeed(seed) {
+  _rngSeed = seed >>> 0;
+}
+
+/** @returns {number} in [0, 1) */
+function seededRandom() {
+  _rngSeed = (_rngSeed * 1664525 + 1013904223) >>> 0;
+  return (_rngSeed >>> 0) / 4294967296;
+}
+
+// ============================================
 // STATE MANAGEMENT
 // ============================================
 
@@ -159,12 +181,12 @@ class StateManager {
       if (pvz.type !== PVZType.MESH && pvz.type !== PVZType.HUB) continue;
 
       // Add 3-5 random products to each mesh PVZ
-      const numProducts = Math.floor(Math.random() * 3) + 3;
-      const shuffled = [...productArray].sort(() => 0.5 - Math.random());
+      const numProducts = Math.floor(seededRandom() * 3) + 3;
+      const shuffled = [...productArray].sort(() => seededRandom() - 0.5);
 
       for (let i = 0; i < Math.min(numProducts, shuffled.length); i++) {
         const product = shuffled[i];
-        const quantity = Math.floor(Math.random() * 20) + 5;
+        const quantity = Math.floor(seededRandom() * 20) + 5;
         const batchId = `batch-${product.id}-${generateId().slice(-6)}`;
 
         pvz.inventory.push({
@@ -174,7 +196,7 @@ class StateManager {
           batchId,
           receivedAt: this.state?.virtualTime?.currentTime || 0,
           status: 'available',
-          daysStored: Math.floor(Math.random() * 10)
+          daysStored: Math.floor(seededRandom() * 10)
         });
         pvz.occupiedCapacity += quantity;
       }
@@ -187,14 +209,14 @@ class StateManager {
   generateSalesHistory(salesHistory, products) {
     for (const product of products.values()) {
       const history = [];
-      const baseDemand = Math.floor(Math.random() * 10) + 2; // 2-12 per day
-      const trend = (Math.random() - 0.5) * 0.1; // slight trend
+      const baseDemand = Math.floor(seededRandom() * 10) + 2; // 2-12 per day
+      const trend = (seededRandom() - 0.5) * 0.1; // slight trend
       const seasonality = 7; // weekly
 
       for (let day = 0; day < 84; day++) { // 12 weeks
         const weeklyPattern = 1 + 0.3 * Math.sin((day % seasonality) / seasonality * 2 * Math.PI);
         const trendFactor = 1 + trend * day;
-        const noise = 1 + (Math.random() - 0.5) * 0.4;
+        const noise = 1 + (seededRandom() - 0.5) * 0.4;
         const demand = Math.max(0, Math.round(baseDemand * weeklyPattern * trendFactor * noise));
         history.push(demand);
       }
