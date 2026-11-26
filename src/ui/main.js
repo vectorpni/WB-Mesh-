@@ -31,6 +31,19 @@ async function initApp() {
   window.appState = StateManager.getInstance();
   await window.appState.initialize();
 
+  // Restore persisted tariffs from localStorage
+  try {
+    const stored = localStorage.getItem('wb-mesh-tariffs');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const state = window.appState.getState();
+      Object.assign(state.tariffs, parsed);
+      window.appState.setTariffs(state.tariffs);
+    }
+  } catch (e) {
+    console.warn('Could not restore tariffs from localStorage:', e);
+  }
+
   // Subscribe to state changes
   window.appState.subscribe(onStateChange);
 
@@ -1041,8 +1054,14 @@ function renderSellerForecast() {
 
   container.innerHTML = '';
   products.slice(0, 5).forEach(product => {
-    // Generate mock sales history
-    const history = Array.from({length: 84}, (_, i) => Math.floor(Math.random() * 15) + 1);
+    // Use real sales history from StateManager, not synthetic data
+    const history = state.salesHistory.get(product.id) || [];
+    if (history.length === 0) {
+      container.appendChild(createElement('div', { class: 'text-center py-8 text-tertiary' }, [
+        createElement('p', {}, `Недостаточно данных для прогноза ${product.sku}`)
+      ]));
+      return;
+    }
     const forecast = DemandForecast.forecastNextDay(history, 7, state.tariffs);
     const panel = createForecastPanel({ ...forecast, productName: product.name, productSku: product.sku });
     container.appendChild(panel);
@@ -1263,6 +1282,12 @@ function handleTariffChange(action, key, value) {
     state.tariffs[key] = value;
   }
   window.appState.setTariffs(state.tariffs);
+  // Persist tariffs to localStorage
+  try {
+    localStorage.setItem('wb-mesh-tariffs', JSON.stringify(state.tariffs));
+  } catch (e) {
+    console.warn('Could not persist tariffs to localStorage:', e);
+  }
   renderEconomics();
   showToast('Тарифы обновлены', 'success');
 }
