@@ -1,0 +1,16 @@
+# WB Mesh Control System — .gitignore
+
+# Dependencies
+node_modules/
+
+# Test artifacts / screenshots
+test-final.png
+test-ui.png
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local state (demo data)
+*.local.json
